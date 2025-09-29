@@ -1,0 +1,7 @@
+node_modules
+*.log
+.DS_Store
+.env*
+test-*.sh
+image.png
+claude.log

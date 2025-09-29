@@ -90,7 +90,7 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         showStatus(
           "Failed to send to Claude - is claude-devtools-host running?",
-          "error"
+          "error",
         );
       }
     } catch (error) {
@@ -109,7 +109,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if (chrome.runtime.lastError) {
             showStatus(
               "Failed to connect to page. Try refreshing the page.",
-              "error"
+              "error",
             );
             return;
           }
@@ -118,12 +118,12 @@ document.addEventListener("DOMContentLoaded", function () {
             setPickingState(true);
             showStatus(
               "Element picker activated - click any element on the page",
-              "success"
+              "success",
             );
           } else {
             showStatus("Failed to start element picker", "error");
           }
-        }
+        },
       );
     });
   }
@@ -136,7 +136,7 @@ document.addEventListener("DOMContentLoaded", function () {
         function () {
           setPickingState(false);
           showStatus("Element picking cancelled", "success");
-        }
+        },
       );
     });
   }
@@ -166,9 +166,8 @@ document.addEventListener("DOMContentLoaded", function () {
       selectedElement.component?.name || "Not detected";
     document.getElementById("componentFile").textContent =
       selectedElement.component?.file || "Not available";
-    document.getElementById(
-      "elementTag"
-    ).textContent = `<${selectedElement.tagName}>`;
+    document.getElementById("elementTag").textContent =
+      `<${selectedElement.tagName}>`;
     document.getElementById("framework").textContent =
       selectedElement.component?.framework || "None detected";
 
@@ -179,7 +178,7 @@ document.addEventListener("DOMContentLoaded", function () {
       propsElement.textContent = JSON.stringify(
         selectedElement.component.props,
         null,
-        2
+        2,
       );
       propsDetails.style.display = "block";
     } else {
@@ -225,7 +224,7 @@ document.addEventListener("DOMContentLoaded", function () {
         prompt += `\n- Props: ${JSON.stringify(
           selectedElement.component.props,
           null,
-          2
+          2,
         )}`;
       }
     }
@@ -255,55 +254,53 @@ document.addEventListener("DOMContentLoaded", function () {
     return result.serverPort || 47923;
   }
 
-  chrome.runtime.onMessage.addListener(function (
-    request,
-    sender,
-    sendResponse
-  ) {
-    if (request.type === "CAPTURE_ELEMENT") {
-      chrome.tabs.captureVisibleTab(
-        null,
-        { format: "png" },
-        function (dataUrl) {
-          if (chrome.runtime.lastError) {
-            sendResponse(null);
-            return;
-          }
+  chrome.runtime.onMessage.addListener(
+    function (request, sender, sendResponse) {
+      if (request.type === "CAPTURE_ELEMENT") {
+        chrome.tabs.captureVisibleTab(
+          null,
+          { format: "png" },
+          function (dataUrl) {
+            if (chrome.runtime.lastError) {
+              sendResponse(null);
+              return;
+            }
 
-          const img = new Image();
-          img.onload = function () {
-            const canvas = document.createElement("canvas");
-            const ctx = canvas.getContext("2d");
+            const img = new Image();
+            img.onload = function () {
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
 
-            const dpr = request.rect.dpr || 1;
-            const scaledX = request.rect.x * dpr;
-            const scaledY = request.rect.y * dpr;
-            const scaledWidth = request.rect.width * dpr;
-            const scaledHeight = request.rect.height * dpr;
+              const dpr = request.rect.dpr || 1;
+              const scaledX = request.rect.x * dpr;
+              const scaledY = request.rect.y * dpr;
+              const scaledWidth = request.rect.width * dpr;
+              const scaledHeight = request.rect.height * dpr;
 
-            canvas.width = request.rect.width;
-            canvas.height = request.rect.height;
+              canvas.width = request.rect.width;
+              canvas.height = request.rect.height;
 
-            ctx.drawImage(
-              img,
-              scaledX,
-              scaledY,
-              scaledWidth,
-              scaledHeight,
-              0,
-              0,
-              request.rect.width,
-              request.rect.height
-            );
+              ctx.drawImage(
+                img,
+                scaledX,
+                scaledY,
+                scaledWidth,
+                scaledHeight,
+                0,
+                0,
+                request.rect.width,
+                request.rect.height,
+              );
 
-            sendResponse(canvas.toDataURL("image/png"));
-          };
-          img.src = dataUrl;
-        }
-      );
-      return true;
-    }
-  });
+              sendResponse(canvas.toDataURL("image/png"));
+            };
+            img.src = dataUrl;
+          },
+        );
+        return true;
+      }
+    },
+  );
 
   async function getAngularSourceLocation(elementId) {
     const debuggee = { tabId: chrome.devtools.inspectedWindow.tabId };
@@ -327,7 +324,7 @@ document.addEventListener("DOMContentLoaded", function () {
             expression: `window.ng.getOwningComponent(document.querySelector('[data-claude-devtools-id="${elementId}"]')).constructor`,
             objectGroup: "console",
           },
-          resolve
+          resolve,
         );
       });
 
@@ -339,12 +336,12 @@ document.addEventListener("DOMContentLoaded", function () {
             {
               objectId: evalResult.result.objectId,
             },
-            resolve
+            resolve,
           );
         });
 
         const functionLocationProp = propertiesResult.internalProperties?.find(
-          (prop) => prop.name === "[[FunctionLocation]]"
+          (prop) => prop.name === "[[FunctionLocation]]",
         );
 
         if (functionLocationProp?.value?.value) {
@@ -359,7 +356,7 @@ document.addEventListener("DOMContentLoaded", function () {
               debuggee,
               "Debugger.disable",
               {},
-              resolve
+              resolve,
             );
           });
 
@@ -385,7 +382,7 @@ document.addEventListener("DOMContentLoaded", function () {
               debuggee,
               "Debugger.enable",
               {},
-              resolve
+              resolve,
             );
           });
 
@@ -408,7 +405,7 @@ document.addEventListener("DOMContentLoaded", function () {
               const sourceMapData = JSON.parse(sourceMapJson);
 
               const consumer = await new sourceMap.SourceMapConsumer(
-                sourceMapData
+                sourceMapData,
               );
 
               const originalPosition = consumer.originalPositionFor({

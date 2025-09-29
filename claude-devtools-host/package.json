@@ -1,19 +1,33 @@
 {
-  "name": "claude-devtools-host",
+  "name": "@alexstrnik/claude-devtools",
   "version": "1.0.0",
   "description": "Host server for Claude DevTools Chrome extension",
   "main": "server.js",
   "bin": {
-    "claude-devtools-host": "./server.js"
+    "claude-devtools": "./server.js"
   },
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "claude",
+    "devtools",
+    "chrome-extension",
+    "react",
+    "angular"
+  ],
+  "author": {
+    "name": "alexstrnik",
+    "email": "alex.str.nik@gmail.com",
+    "url": "https://github.com/AlexStrNik"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AlexStrNik/claude-devtools"
+  },
+  "license": "MIT",
   "packageManager": "pnpm@10.17.1",
   "dependencies": {
     "@fastify/cors": "^11.1.0",

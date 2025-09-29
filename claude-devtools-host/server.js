@@ -6,14 +6,11 @@ const fs = require("fs").promises;
 const fastify = require("fastify")({ logger: false });
 const { writeClipboardImages } = require("clipboard-image");
 
-fastify.register(require("@fastify/cors"), {
-  origin: true,
-});
+fastify.register(require("@fastify/cors"), { origin: true });
 
 const requestQueue = [];
 let isProcessingQueue = false;
 let claudePty = null;
-
 let onImagePasted = null;
 
 function startClaudeProcess() {
@@ -75,13 +72,13 @@ async function processQueue() {
         if (request.image) {
           const base64Data = request.image.replace(
             /^data:image\/[a-z]+;base64,/,
-            ""
+            "",
           );
           const buffer = Buffer.from(base64Data, "base64");
 
           const tempFilePath = path.join(
             os.tmpdir(),
-            `claude-devtools-${Date.now()}.png`
+            `claude-devtools-${Date.now()}.png`,
           );
           await fs.writeFile(tempFilePath, buffer);
 

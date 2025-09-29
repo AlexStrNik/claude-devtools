@@ -3,16 +3,8 @@
   "name": "Claude DevTools",
   "version": "1.0.0",
   "description": "Pick elements and send them to Claude with React/Angular/Vue component detection",
-  "permissions": [
-    "activeTab",
-    "storage",
-    "tabs",
-    "debugger",
-    "scripting"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["activeTab", "storage", "tabs", "debugger", "scripting"],
+  "host_permissions": ["<all_urls>"],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
   },

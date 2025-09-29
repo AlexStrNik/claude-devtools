@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: |
+          cd claude-devtools-host
+          pnpm install --frozen-lockfile
+
+      - name: Package Chrome Extension
+        run: |
+          cd chrome-devtools-extension
+          zip -r ../claude-devtools-extension-${{ github.ref_name }}.zip . \
+            -x "node_modules/*" "*.log" ".DS_Store"
+
+      - name: Publish to npm
+        run: |
+          cd claude-devtools-host
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Claude DevTools ${{ github.ref_name }}
+          body: |
+            ## Installation
+
+            ### Host Server
+            ```bash
+            npm install -g @alexstrnik/claude-devtools@${{ github.ref_name }}
+            ```
+
+            ### Chrome Extension
+            1. Download the extension zip below
+            2. Extract to a folder
+            3. Load unpacked in Chrome Extensions
+
+            ## Changes
+            See commits since last release.
+          draft: false
+          prerelease: false
+
+      - name: Upload Extension Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./claude-devtools-extension-${{ github.ref_name }}.zip
+          asset_name: claude-devtools-extension-${{ github.ref_name }}.zip
+          asset_content_type: application/zip

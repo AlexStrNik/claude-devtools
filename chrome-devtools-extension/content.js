@@ -11,10 +11,7 @@ class ClaudeDevTools {
   }
 
   init() {
-    // Inject the detection script
     this.injectScript();
-
-    // Listen for messages from DevTools panel
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.action === "startPicking") {
         this.startPicking();
@@ -322,7 +319,7 @@ class ClaudeDevTools {
           id: messageId,
           elementId: elementId,
         },
-        "*"
+        "*",
       );
 
       setTimeout(() => {
@@ -469,7 +466,7 @@ class ClaudeDevTools {
               dpr: window.devicePixelRatio,
             },
           },
-          resolve
+          resolve,
         );
       });
     } catch (error) {
