@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -42,12 +45,9 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Claude DevTools ${{ github.ref_name }}
+          name: Claude DevTools ${{ github.ref_name }}
           body: |
             ## Installation
 
@@ -63,15 +63,7 @@ jobs:
 
             ## Changes
             See commits since last release.
+          files: |
+            claude-devtools-extension-${{ github.ref_name }}.zip
           draft: false
           prerelease: false
-
-      - name: Upload Extension Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./claude-devtools-extension-${{ github.ref_name }}.zip
-          asset_name: claude-devtools-extension-${{ github.ref_name }}.zip
-          asset_content_type: application/zip
