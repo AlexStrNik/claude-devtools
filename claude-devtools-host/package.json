@@ -1,6 +1,6 @@
 {
   "name": "@alexstrnik/claude-devtools",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Host server for Claude DevTools Chrome extension",
   "main": "server.js",
   "bin": {
@@ -26,6 +26,9 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/AlexStrNik/claude-devtools"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "license": "MIT",
   "packageManager": "pnpm@10.17.1",
