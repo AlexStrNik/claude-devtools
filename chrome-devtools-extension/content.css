@@ -1,0 +1,67 @@
+/* Element picker highlighting */
+.claude-devtools-highlighter {
+  position: fixed !important;
+  pointer-events: none !important;
+  z-index: 999999 !important;
+  border: 2px solid #007aff !important;
+  background-color: rgba(0, 122, 255, 0.1) !important;
+  box-sizing: border-box !important;
+  display: none !important;
+}
+
+.claude-devtools-highlighter.active {
+  display: block !important;
+}
+
+.claude-devtools-label {
+  position: fixed !important;
+  background: #007aff !important;
+  color: white !important;
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  z-index: 1000000 !important;
+  pointer-events: none !important;
+  display: none !important;
+}
+
+.claude-devtools-label.active {
+  display: block !important;
+}
+
+.claude-devtools-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(0, 0, 0, 0.3) !important;
+  z-index: 999998 !important;
+  pointer-events: none !important;
+}
+
+.claude-devtools-instructions {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: #1a1a1a !important;
+  color: white !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  z-index: 1000001 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
+}
+
+.claude-devtools-instructions .key {
+  background: #333 !important;
+  padding: 2px 6px !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  margin: 0 2px !important;
+}

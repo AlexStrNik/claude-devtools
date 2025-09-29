@@ -1,0 +1,11 @@
+<div class="counter-container">
+  <h3>{{ label }}</h3>
+  <div class="counter-display">
+    <span class="count-value">{{ count }}</span>
+  </div>
+  <div class="counter-controls">
+    <button (click)="decrement()" class="btn btn-secondary">-{{ step }}</button>
+    <button (click)="reset()" class="btn btn-warning">Reset</button>
+    <button (click)="increment()" class="btn btn-primary">+{{ step }}</button>
+  </div>
+</div>
