@@ -52,15 +52,8 @@ document.addEventListener("DOMContentLoaded", function () {
         showStatus("Element selected!", "success");
         setPickingState(false);
 
-        if (
-          selectedElement.component?.needsSourceDetection &&
-          selectedElement.elementId
-        ) {
-          if (selectedElement.component.framework === "Angular") {
-            getAngularSourceLocation(selectedElement.elementId);
-          } else if (selectedElement.component.framework === "React") {
-            getReactSourceLocation(selectedElement.elementId);
-          }
+        if (selectedElement.component?.needsSourceDetection) {
+          getSourceLocations();
         }
       }
     }
@@ -231,12 +224,11 @@ document.addEventListener("DOMContentLoaded", function () {
       if (selectedElement.component.name) {
         addDetailsRow("Component:", selectedElement.component.name);
       }
-      if (
-        selectedElement.component.file &&
-        selectedElement.component.file !== "detecting..."
-      ) {
-        const displayFile = makePathRelativeToProject(selectedElement.component.file);
-        addDetailsRow("File:", displayFile);
+      if (selectedElement.component.files && selectedElement.component.files.length > 0) {
+        const displayFiles = selectedElement.component.files
+          .map(f => makePathRelativeToProject(f))
+          .join("\n");
+        addDetailsRow("Files:", displayFiles);
       }
     }
 
@@ -305,9 +297,11 @@ document.addEventListener("DOMContentLoaded", function () {
       if (selectedElement.component.framework) {
         prompt += `\n- Framework: ${selectedElement.component.framework}`;
       }
-      if (selectedElement.component.file) {
-        const displayFile = makePathRelativeToProject(selectedElement.component.file);
-        prompt += `\n- File: ${displayFile}`;
+      if (selectedElement.component.files && selectedElement.component.files.length > 0) {
+        const displayFiles = selectedElement.component.files
+          .map(f => makePathRelativeToProject(f))
+          .join("\n  ");
+        prompt += `\n- Files:\n  ${displayFiles}`;
       }
       if (
         propsOption.classList.contains("enabled") &&
@@ -671,7 +665,7 @@ document.addEventListener("DOMContentLoaded", function () {
     return `${fileName}:${finalLineNumber}`;
   }
 
-  async function getReactSourceLocation(elementId) {
+  async function getSourceLocations() {
     const debuggee = { tabId: chrome.devtools.inspectedWindow.tabId };
 
     try {
@@ -685,84 +679,46 @@ document.addEventListener("DOMContentLoaded", function () {
         });
       });
 
-      const fiberKeyExpression = `Object.keys(document.querySelector('[data-claude-devtools-id="${elementId}"]')).find(key => key.startsWith('__reactFiber'))`;
-
-      const evalResult = await new Promise((resolve) => {
+      const functionsResult = await new Promise((resolve) => {
         chrome.debugger.sendCommand(
           debuggee,
           "Runtime.evaluate",
           {
-            expression: `document.querySelector('[data-claude-devtools-id="${elementId}"]')[${fiberKeyExpression}]._debugOwner.type`,
+            expression: `window.__claudeDevToolsFunctionsToLocate || []`,
             objectGroup: "console",
           },
           resolve
         );
       });
 
-      if (evalResult.result?.objectId) {
-        const sourceLocation = await getFunctionSourceLocation(
-          debuggee,
-          evalResult.result.objectId
-        );
+      const locations = [];
 
-        chrome.debugger.detach(debuggee);
+      if (functionsResult.result?.objectId) {
+        const propertiesResult = await new Promise((resolve) => {
+          chrome.debugger.sendCommand(
+            debuggee,
+            "Runtime.getProperties",
+            { objectId: functionsResult.result.objectId },
+            resolve
+          );
+        });
 
-        if (sourceLocation) {
-          selectedElement.component.file = sourceLocation;
-          chrome.storage.local.set({ selectedElement: selectedElement });
-        } else {
-          chrome.debugger.detach(debuggee);
+        for (const prop of propertiesResult.result || []) {
+          if (prop.name !== "length" && prop.value?.objectId) {
+            const location = await getFunctionSourceLocation(debuggee, prop.value.objectId);
+            if (location) {
+              locations.push(location);
+            }
+          }
         }
-      } else {
-        chrome.debugger.detach(debuggee);
       }
-    } catch (error) {
-      try {
-        chrome.debugger.detach(debuggee);
-      } catch (e) {}
-    }
-  }
 
-  async function getAngularSourceLocation(elementId) {
-    const debuggee = { tabId: chrome.devtools.inspectedWindow.tabId };
+      chrome.debugger.detach(debuggee);
 
-    try {
-      await new Promise((resolve, reject) => {
-        chrome.debugger.attach(debuggee, "1.3", () => {
-          if (chrome.runtime.lastError) {
-            reject(chrome.runtime.lastError);
-          } else {
-            resolve();
-          }
-        });
-      });
-
-      const evalResult = await new Promise((resolve) => {
-        chrome.debugger.sendCommand(
-          debuggee,
-          "Runtime.evaluate",
-          {
-            expression: `window.ng.getOwningComponent(document.querySelector('[data-claude-devtools-id="${elementId}"]')).constructor`,
-            objectGroup: "console",
-          },
-          resolve
-        );
-      });
-
-      if (evalResult.result?.objectId) {
-        const sourceLocation = await getFunctionSourceLocation(
-          debuggee,
-          evalResult.result.objectId
-        );
-
-        chrome.debugger.detach(debuggee);
-
-        if (sourceLocation) {
-          selectedElement.component.file = sourceLocation;
-          chrome.storage.local.set({ selectedElement: selectedElement });
-        }
-      } else {
-        chrome.debugger.detach(debuggee);
+      if (locations.length > 0) {
+        selectedElement.component.files = locations;
+        chrome.storage.local.set({ selectedElement: selectedElement });
+        updateSelectedInfo();
       }
     } catch (error) {
       try {

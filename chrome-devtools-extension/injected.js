@@ -2,12 +2,26 @@
   "use strict";
 
   class FrameworkDetector {
-    getComponentInfo(element) {
-      const reactInfo = this.getReactInfo(element);
-      if (reactInfo) return { ...reactInfo, framework: "React" };
+    detectFramework() {
+      if (window.__REACT_DEVTOOLS_GLOBAL_HOOK__) {
+        return "React";
+      }
+      if (window.ng) {
+        return "Angular";
+      }
+      return null;
+    }
 
-      const angularInfo = this.getAngularInfo(element);
-      if (angularInfo) return { ...angularInfo, framework: "Angular" };
+    getComponentInfo(element) {
+      const framework = this.detectFramework();
+
+      if (framework === "React") {
+        const reactInfo = this.getReactInfo(element);
+        if (reactInfo) return { ...reactInfo, framework: "React" };
+      } else if (framework === "Angular") {
+        const angularInfo = this.getAngularInfo(element);
+        if (angularInfo) return { ...angularInfo, framework: "Angular" };
+      }
 
       return null;
     }
@@ -19,99 +33,106 @@
 
       if (!fiberKey) return null;
 
-      const fiber = element[fiberKey];
-      if (!fiber?._debugOwner?.elementType) return null;
+      let fiber = element[fiberKey];
+      if (!fiber) return null;
 
-      const componentType = fiber._debugOwner.elementType;
-      const name =
-        componentType.name ||
-        componentType.displayName ||
-        fiber._debugOwner.type?.name;
-
-      if (!name || this.isReactInternal(name)) return null;
-
-      let fileName = "";
-      let lineNumber = "";
-
-      if (fiber._debugSource) {
-        fileName = fiber._debugSource.fileName;
-        lineNumber = fiber._debugSource.lineNumber;
-      } else if (fiber._debugOwner._debugSource) {
-        fileName = fiber._debugOwner._debugSource.fileName;
-        lineNumber = fiber._debugOwner._debugSource.lineNumber;
-      } else if (fiber._debugOwner._debugStack) {
-        const stack = fiber._debugOwner._debugStack.stack;
-        if (stack) {
-          const lines = stack.split("\n");
-          for (const line of lines) {
-            let match = line.match(/at\s+\w+\s+\(([^)]+):(\d+):\d+\)/);
-            if (!match) {
-              match = line.match(/at\s+(.+):(\d+):(\d+)$/);
-            }
-            if (
-              match &&
-              (match[1].includes(".jsx") || match[1].includes(".tsx"))
-            ) {
-              const fullPath = match[1];
-              fileName = fullPath.split("/").pop();
-              lineNumber = match[2];
-              break;
-            }
-          }
+      while (fiber) {
+        const name = fiber.type?.name || fiber.type?.displayName;
+        if (name && !this.isReactInternal(name)) {
+          break;
         }
-      } else {
-        fileName = "not available";
+        fiber = fiber._debugOwner;
+        if (!fiber) return null;
       }
 
+      const name = fiber.type?.name || fiber.type?.displayName;
+      if (!name) return null;
+
+      const sources = [];
+      const functionsToLocate = [];
+      let currentFiber = fiber;
+      let finalName = name;
+      let finalProps = fiber.memoizedProps;
+
+      while (currentFiber) {
+        if (currentFiber._debugSource) {
+          if (sources.length === 0) {
+            finalName =
+              currentFiber.type?.name ||
+              currentFiber.type?.displayName ||
+              finalName;
+            finalProps = currentFiber.memoizedProps || finalProps;
+          }
+          sources.push({
+            fileName: currentFiber._debugSource.fileName,
+            lineNumber: currentFiber._debugSource.lineNumber,
+          });
+        } else if (
+          currentFiber.type &&
+          typeof currentFiber.type === "function"
+        ) {
+          functionsToLocate.push(currentFiber.type);
+        }
+
+        currentFiber = currentFiber._debugOwner;
+      }
+
+      const files = sources.map((s) => `${s.fileName}:${s.lineNumber}`);
+
       return {
-        name,
-        props: fiber._debugOwner.memoizedProps,
-        file:
-          fileName && lineNumber
-            ? `${fileName}:${lineNumber}`
-            : fileName,
-        needsSourceDetection: !fileName || !lineNumber,
+        name: finalName,
+        props: finalProps,
+        files: files.length > 0 ? files : null,
+        functionsToLocate: functionsToLocate,
+        needsSourceDetection: sources.length === 0,
         elementId: element.getAttribute("data-claude-devtools-id"),
       };
     }
 
     getAngularInfo(element) {
-      if (window.ng?.getOwningComponent) {
-        const component = window.ng.getOwningComponent(element);
-        if (component) {
-          const props = {};
+      if (!window.ng?.getOwningComponent) return null;
 
-          for (const key in component) {
-            if (
-              component.hasOwnProperty(key) &&
-              !key.startsWith("_") &&
-              !key.startsWith("ng")
-            ) {
-              const value = component[key];
-              if (typeof value !== "function" && typeof value !== "undefined") {
-                props[key] = value;
-              }
-            }
-          }
+      let currentComponent = window.ng.getOwningComponent(element);
+      if (!currentComponent) return null;
 
-          return {
-            name: component.constructor.name.startsWith("_")
-              ? component.constructor.name.substring(1)
-              : component.constructor.name,
-            props: Object.keys(props).length > 0 ? props : null,
-            file: "not available",
-            needsSourceDetection: true,
-            elementId: element.getAttribute("data-claude-devtools-id"),
-          };
+      const functionsToLocate = [];
+      let finalName = null;
+      let finalProps = null;
+
+      while (currentComponent) {
+        if (!finalName) {
+          finalName = currentComponent.constructor.name.startsWith("_")
+            ? currentComponent.constructor.name.substring(1)
+            : currentComponent.constructor.name;
+          finalProps = currentComponent;
+        }
+
+        functionsToLocate.push(currentComponent.constructor);
+
+        try {
+          currentComponent = window.ng.getOwningComponent(currentComponent);
+        } catch {
+          break;
         }
       }
 
-      return null;
+      return {
+        name: finalName,
+        props: finalProps,
+        files: null,
+        functionsToLocate: functionsToLocate,
+        needsSourceDetection: true,
+        elementId: element.getAttribute("data-claude-devtools-id"),
+      };
     }
 
     isReactInternal(name) {
       const internals = ["Fragment", "StrictMode", "Profiler", "Suspense"];
-      return internals.includes(name) || name.startsWith("React.");
+      return (
+        internals.includes(name) ||
+        name.startsWith("React.") ||
+        name.startsWith("Primitive.")
+      );
     }
   }
 
@@ -134,11 +155,16 @@
       );
       const componentInfo = element ? detector.getComponentInfo(element) : null;
 
+      if (componentInfo?.functionsToLocate) {
+        window.__claudeDevToolsFunctionsToLocate =
+          componentInfo.functionsToLocate;
+      }
+
       const sanitizedInfo = componentInfo
         ? {
             name: componentInfo.name,
             framework: componentInfo.framework,
-            file: componentInfo.file,
+            files: componentInfo.files,
             props: sanitizeProps(componentInfo.props),
             needsSourceDetection: componentInfo.needsSourceDetection,
           }

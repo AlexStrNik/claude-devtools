@@ -1,6 +1,7 @@
 class ClaudeDevTools {
   constructor() {
     this.isPicking = false;
+    this.isSelecting = false;
     this.currentElement = null;
     this.overlay = null;
     this.instructions = null;
@@ -152,7 +153,7 @@ class ClaudeDevTools {
     });
   }
 
-  handleMouseMove = async (e) => {
+  handleMouseMove = (e) => {
     if (!this.isPicking) return;
 
     e.stopPropagation();
@@ -175,35 +176,38 @@ class ClaudeDevTools {
     if (!element) return;
 
     if (element !== this.currentElement) {
-      await this.highlightElement(element);
+      this.highlightElement(element);
     }
   };
 
-  handleClick = async (e) => {
-    if (!this.isPicking) return;
+  handleClick = (e) => {
+    if (!this.isPicking && !this.isSelecting) return;
 
     e.stopPropagation();
     e.preventDefault();
 
+    if (!this.isPicking) return; // Already selecting
+
     const element = this.getElementFromPoint(e.clientX, e.clientY);
     if (!element) return;
 
-    await this.selectElement(element);
+    this.selectElement(element);
   };
 
   handleKeyDown = (e) => {
-    if (!this.isPicking) return;
+    if (!this.isPicking && !this.isSelecting) return;
 
     if (e.key === "Escape") {
       e.stopPropagation();
       e.preventDefault();
       this.stopPicking();
+      this.isSelecting = false;
       return;
     }
   };
 
   blockEvent = (e) => {
-    if (!this.isPicking) return;
+    if (!this.isPicking && !this.isSelecting) return;
     e.stopPropagation();
     e.preventDefault();
   };
@@ -263,7 +267,7 @@ class ClaudeDevTools {
   }
 
   async selectElement(element) {
-    this.stopPicking();
+    this.isSelecting = true;
 
     // Ensure element has an ID before getting component info
     let elementId = element.getAttribute("data-claude-devtools-id");
@@ -280,7 +284,10 @@ class ClaudeDevTools {
       screenshot: await this.captureElementScreenshot(element),
       elementId: elementId,
     };
+
+    this.stopPicking();
     chrome.storage.local.set({ selectedElement: elementData });
+    this.isSelecting = false;
   }
 
   getComponentInfo(element) {

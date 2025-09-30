@@ -41,7 +41,8 @@
   height: 100vh !important;
   background: rgba(42, 38, 33, 0.4) !important;
   z-index: 999998 !important;
-  pointer-events: none !important;
+  pointer-events: auto !important;
+  cursor: crosshair !important;
 }
 
 .claude-devtools-instructions {
