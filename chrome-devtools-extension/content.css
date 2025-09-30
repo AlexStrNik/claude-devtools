@@ -57,14 +57,6 @@
   font-size: 12px !important;
   z-index: 1000001 !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-}
-
-.claude-devtools-instructions .key {
-  background: rgba(244, 243, 238, 0.2) !important;
-  color: #C15F3C !important;
-  padding: 2px 6px !important;
-  border-radius: 2px !important;
-  font-size: 11px !important;
-  margin: 0 2px !important;
-  border: 1px solid rgba(193, 95, 60, 0.3) !important;
+  pointer-events: none !important;
+  transition: opacity 0.2s ease !important;
 }

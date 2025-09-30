@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const sendToClaudeBtn = document.getElementById("sendToClaude");
   const promptText = document.getElementById("promptText");
   const detailsContainer = document.getElementById("detailsContainer");
-  const status = document.getElementById("status");
   const statusDot = document.getElementById("statusDot");
   const connectionStatus = document.getElementById("connectionStatus");
   const portInput = document.getElementById("portInput");

@@ -29,11 +29,36 @@ class ClaudeDevTools {
     (document.head || document.documentElement).appendChild(script);
   }
 
+  injectPickerStyles() {
+    this.pickerStyle = document.createElement("style");
+    this.pickerStyle.id = "claude-devtools-picker-style";
+    this.pickerStyle.textContent = `
+      *[disabled] {
+        pointer-events: all !important;
+      }
+      button[disabled],
+      input[disabled],
+      select[disabled],
+      textarea[disabled] {
+        pointer-events: all !important;
+      }
+    `;
+    document.head.appendChild(this.pickerStyle);
+  }
+
+  removePickerStyles() {
+    if (this.pickerStyle) {
+      this.pickerStyle.remove();
+      this.pickerStyle = null;
+    }
+  }
+
   startPicking() {
     if (this.isPicking) return;
 
     this.isPicking = true;
     this.createOverlay();
+    this.injectPickerStyles();
     this.bindEvents();
   }
 
@@ -42,6 +67,7 @@ class ClaudeDevTools {
 
     this.isPicking = false;
     this.removeOverlay();
+    this.removePickerStyles();
     this.unbindEvents();
     this.clearHighlight();
   }
@@ -90,11 +116,7 @@ class ClaudeDevTools {
   }
 
   bindEvents() {
-    document.addEventListener("mouseover", this.handleMouseOver, {
-      capture: true,
-      passive: false,
-    });
-    document.addEventListener("mouseout", this.handleMouseOut, {
+    document.addEventListener("mousemove", this.handleMouseMove, {
       capture: true,
       passive: false,
     });
@@ -106,8 +128,6 @@ class ClaudeDevTools {
       capture: true,
       passive: false,
     });
-
-    // Only block interactions that interfere with element selection
     document.addEventListener("mousedown", this.blockEvent, {
       capture: true,
       passive: false,
@@ -124,16 +144,10 @@ class ClaudeDevTools {
       capture: true,
       passive: false,
     });
-    // Don't block wheel - allow scrolling
-    // Don't block touch events - allow mobile interaction
   }
 
   unbindEvents() {
-    document.removeEventListener("mouseover", this.handleMouseOver, {
-      capture: true,
-      passive: false,
-    });
-    document.removeEventListener("mouseout", this.handleMouseOut, {
+    document.removeEventListener("mousemove", this.handleMouseMove, {
       capture: true,
       passive: false,
     });
@@ -145,8 +159,6 @@ class ClaudeDevTools {
       capture: true,
       passive: false,
     });
-
-    // Remove blocked event listeners
     document.removeEventListener("mousedown", this.blockEvent, {
       capture: true,
       passive: false,
@@ -165,39 +177,42 @@ class ClaudeDevTools {
     });
   }
 
-  handleMouseOver = async (e) => {
+  handleMouseMove = async (e) => {
     if (!this.isPicking) return;
-
-    // Skip our own elements
-    if (this.isOurElement(e.target)) return;
 
     e.stopPropagation();
     e.preventDefault();
 
-    await this.highlightElement(e.target);
-  };
+    const instructionsRect = this.instructions.getBoundingClientRect();
+    const isNearInstructions =
+      e.clientY >= instructionsRect.top - 50 &&
+      e.clientY <= instructionsRect.bottom + 20 &&
+      e.clientX >= instructionsRect.left - 50 &&
+      e.clientX <= instructionsRect.right + 50;
 
-  handleMouseOut = (e) => {
-    if (!this.isPicking) return;
+    if (isNearInstructions) {
+      this.instructions.style.opacity = "0.2";
+    } else {
+      this.instructions.style.opacity = "1";
+    }
 
-    // Skip our own elements
-    if (this.isOurElement(e.target)) return;
+    const element = this.getElementFromPoint(e.clientX, e.clientY);
+    if (!element) return;
 
-    e.stopPropagation();
-    e.preventDefault();
-    this.clearHighlight();
+    if (element !== this.currentElement) {
+      await this.highlightElement(element);
+    }
   };
 
   handleClick = async (e) => {
     if (!this.isPicking) return;
 
-    // Skip our own elements
-    if (this.isOurElement(e.target)) return;
-
     e.stopPropagation();
     e.preventDefault();
 
-    const element = e.target;
+    const element = this.getElementFromPoint(e.clientX, e.clientY);
+    if (!element) return;
+
     await this.selectElement(element);
   };
 
@@ -214,22 +229,23 @@ class ClaudeDevTools {
 
   blockEvent = (e) => {
     if (!this.isPicking) return;
-    if (this.isOurElement(e.target)) return;
     e.stopPropagation();
     e.preventDefault();
   };
 
-  isOurElement(element) {
-    return (
-      element === this.overlay ||
-      element === this.instructions ||
-      element === this.highlighter ||
-      element === this.label ||
-      element.closest(".claude-devtools-overlay") ||
-      element.closest(".claude-devtools-instructions") ||
-      element.closest(".claude-devtools-highlighter") ||
-      element.closest(".claude-devtools-label")
-    );
+  getElementFromPoint(x, y) {
+    const elements = document.elementsFromPoint(x, y);
+    for (const element of elements) {
+      if (
+        element !== this.overlay &&
+        element !== this.instructions &&
+        element !== this.highlighter &&
+        element !== this.label
+      ) {
+        return element;
+      }
+    }
+    return null;
   }
 
   async highlightElement(element) {
@@ -324,8 +340,7 @@ class ClaudeDevTools {
 
       setTimeout(() => {
         window.removeEventListener("message", handleMessage);
-        // element.removeAttribute('data-claude-devtools-id');
-        resolve(this.getFallbackComponentInfo(element));
+        resolve(null);
       }, 500);
     });
   }
@@ -334,10 +349,6 @@ class ClaudeDevTools {
     return (
       "claude-" + Date.now() + "-" + Math.random().toString(36).substring(2, 11)
     );
-  }
-
-  getFallbackComponentInfo() {
-    return null;
   }
 
   getElementHTML(element) {
@@ -475,58 +486,6 @@ class ClaudeDevTools {
     }
   }
 
-  async createPlaceholderImage(rect, tagName) {
-    return new Promise((resolve) => {
-      // Create a simple canvas-based placeholder that won't cause taint issues
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-
-      // Limit canvas size to reasonable dimensions
-      const maxWidth = Math.min(rect.width, 400);
-      const maxHeight = Math.min(rect.height, 300);
-
-      canvas.width = maxWidth;
-      canvas.height = maxHeight;
-
-      // Create a gradient background
-      const gradient = ctx.createLinearGradient(0, 0, maxWidth, maxHeight);
-      gradient.addColorStop(0, "#f8f9fa");
-      gradient.addColorStop(1, "#e9ecef");
-
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, maxWidth, maxHeight);
-
-      // Add border
-      ctx.strokeStyle = "#dee2e6";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(1, 1, maxWidth - 2, maxHeight - 2);
-
-      // Add element info text
-      ctx.fillStyle = "#495057";
-      ctx.font =
-        "16px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      const text = `<${tagName.toLowerCase()}>`;
-      ctx.fillText(text, maxWidth / 2, maxHeight / 2 - 10);
-
-      // Add dimensions text
-      ctx.font = "12px monospace";
-      ctx.fillStyle = "#6c757d";
-      const dimText = `${Math.round(rect.width)}×${Math.round(rect.height)}px`;
-      ctx.fillText(dimText, maxWidth / 2, maxHeight / 2 + 15);
-
-      try {
-        const dataURL = canvas.toDataURL("image/png");
-        resolve(dataURL);
-      } catch (error) {
-        // If even this fails, return null
-        console.warn("Failed to create placeholder image:", error);
-        resolve(null);
-      }
-    });
-  }
 }
 
 // Initialize

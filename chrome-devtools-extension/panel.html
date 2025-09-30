@@ -116,11 +116,6 @@
         align-items: center;
         padding: 8px 12px;
       }
-      .pick-icon {
-        font-size: 16px;
-        color: var(--primary);
-        margin-right: 8px;
-      }
       .pick-button {
         background: transparent;
         border: none;
@@ -129,8 +124,18 @@
         color: var(--text-primary);
         cursor: pointer;
         padding: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
       .pick-button:hover {
+        color: var(--primary);
+      }
+      .pick-button:hover .pick-icon {
+        color: var(--primary);
+      }
+      .pick-icon {
+        font-size: 16px;
         color: var(--primary);
       }
       .pick-status {
@@ -303,8 +308,10 @@
     <div class="body">
       <!-- Pick Row -->
       <div class="pick-row">
-        <i class="ph ph-cursor pick-icon"></i>
-        <button class="pick-button" id="pickElement">Pick Element</button>
+        <button class="pick-button" id="pickElement">
+          <i class="ph ph-cursor pick-icon"></i>
+          Pick Element
+        </button>
         <span class="pick-status" id="pickStatus" style="display: none;"></span>
       </div>
 
@@ -343,10 +350,6 @@
         <button class="send-button" id="sendToClaude" disabled>Send</button>
       </div>
     </div>
-
-    <!-- Hidden elements for compatibility -->
-    <div id="selectedInfo" class="hidden"></div>
-    <div id="status" class="status hidden"></div>
 
     <script src="source-map.js"></script>
     <script src="panel.js"></script>
