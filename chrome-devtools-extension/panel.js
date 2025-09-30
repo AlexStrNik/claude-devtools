@@ -477,28 +477,19 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function applyDevToolsTheme() {
-    // DevTools theme detection
-    const isDark =
-      chrome.devtools?.panels?.themeName === "dark" ||
-      window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ||
-      false;
+    const updateTheme = () => {
+      const isDark = chrome.devtools.panels.themeName === "dark";
+      if (isDark) {
+        document.documentElement.setAttribute("data-theme", "dark");
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+      }
+    };
 
-    if (isDark) {
-      document.documentElement.setAttribute("data-theme", "dark");
-    } else {
-      document.documentElement.removeAttribute("data-theme");
-    }
+    updateTheme();
 
-    // Listen for theme changes
-    if (window.matchMedia) {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      mediaQuery.addEventListener("change", (e) => {
-        if (e.matches) {
-          document.documentElement.setAttribute("data-theme", "dark");
-        } else {
-          document.documentElement.removeAttribute("data-theme");
-        }
-      });
+    if (chrome.devtools.panels.onThemeChanged) {
+      chrome.devtools.panels.onThemeChanged.addListener(updateTheme);
     }
   }
 
