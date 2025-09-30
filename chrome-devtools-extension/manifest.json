@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Claude DevTools",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Pick elements and send them to Claude with React/Angular/Vue component detection",
   "permissions": ["activeTab", "storage", "tabs", "debugger", "scripting"],
   "host_permissions": ["<all_urls>"],

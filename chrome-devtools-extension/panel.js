@@ -20,10 +20,14 @@ document.addEventListener("DOMContentLoaded", function () {
   const domOption = document.getElementById("domOption");
   const propsOption = document.getElementById("propsOption");
   const pickStatus = document.getElementById("pickStatus");
+  const extensionVersion = document.getElementById("extensionVersion");
+
+  const manifest = chrome.runtime.getManifest();
+  extensionVersion.textContent = `v${manifest.version}`;
 
   chrome.storage.local.remove(["selectedElement", "promptText"]);
 
-  const savedPort = localStorage.getItem('claude-devtools-port');
+  const savedPort = localStorage.getItem("claude-devtools-port");
   if (savedPort) {
     portInput.value = savedPort;
   }
@@ -47,12 +51,15 @@ document.addEventListener("DOMContentLoaded", function () {
         showStatus("Element selected!", "success");
         setPickingState(false);
 
-        // Try to get Angular source location if it's an Angular component
         if (
-          selectedElement.component?.framework === "Angular" &&
+          selectedElement.component?.needsSourceDetection &&
           selectedElement.elementId
         ) {
-          getAngularSourceLocation(selectedElement.elementId);
+          if (selectedElement.component.framework === "Angular") {
+            getAngularSourceLocation(selectedElement.elementId);
+          } else if (selectedElement.component.framework === "React") {
+            getReactSourceLocation(selectedElement.elementId);
+          }
         }
       }
     }
@@ -90,14 +97,14 @@ document.addEventListener("DOMContentLoaded", function () {
   portInput.addEventListener("blur", function () {
     const port = portInput.value.trim();
     if (port) {
-      localStorage.setItem('claude-devtools-port', port);
+      localStorage.setItem("claude-devtools-port", port);
       checkConnectionStatus();
     }
   });
 
   // Option toggles
-  [screenshotOption, stylesOption, domOption, propsOption].forEach(option => {
-    option.addEventListener("click", function() {
+  [screenshotOption, stylesOption, domOption, propsOption].forEach((option) => {
+    option.addEventListener("click", function () {
       this.classList.toggle("enabled");
       saveCheckboxPreferences();
     });
@@ -140,7 +147,7 @@ document.addEventListener("DOMContentLoaded", function () {
       } else {
         showStatus(
           "Failed to send to Claude - is claude-devtools-host running?",
-          "error",
+          "error"
         );
       }
     } catch (error) {
@@ -159,7 +166,7 @@ document.addEventListener("DOMContentLoaded", function () {
           if (chrome.runtime.lastError) {
             showStatus(
               "Failed to connect to page. Try refreshing the page.",
-              "error",
+              "error"
             );
             return;
           }
@@ -168,12 +175,12 @@ document.addEventListener("DOMContentLoaded", function () {
             setPickingState(true);
             showStatus(
               "Element picker activated - click any element on the page",
-              "success",
+              "success"
             );
           } else {
             showStatus("Failed to start element picker", "error");
           }
-        },
+        }
       );
     });
   }
@@ -186,7 +193,7 @@ document.addEventListener("DOMContentLoaded", function () {
         function () {
           setPickingState(false);
           showStatus("Element picking cancelled", "success");
-        },
+        }
       );
     });
   }
@@ -204,12 +211,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateSelectedInfo() {
     if (!selectedElement) {
-      detailsContainer.innerHTML = '<div class="hint">Select an element to inspect</div>';
+      detailsContainer.innerHTML =
+        '<div class="hint">Select an element to inspect</div>';
       return;
     }
 
     // Clear container
-    detailsContainer.innerHTML = '';
+    detailsContainer.innerHTML = "";
 
     // Element info
     addDetailsRow("Tag:", `<${selectedElement.tagName}>`);
@@ -222,47 +230,57 @@ document.addEventListener("DOMContentLoaded", function () {
       if (selectedElement.component.name) {
         addDetailsRow("Component:", selectedElement.component.name);
       }
-      if (selectedElement.component.file && selectedElement.component.file !== "detecting...") {
+      if (
+        selectedElement.component.file &&
+        selectedElement.component.file !== "detecting..."
+      ) {
         addDetailsRow("File:", selectedElement.component.file);
       }
     }
 
     // Props info (if available and enabled)
     if (selectedElement.component?.props) {
-      const propsText = JSON.stringify(selectedElement.component.props, null, 2);
-      const propsPreview = propsText.length > 200
-        ? propsText.substring(0, 200) + "..."
-        : propsText;
+      const propsText = JSON.stringify(
+        selectedElement.component.props,
+        null,
+        2
+      );
+      const propsPreview =
+        propsText.length > 200
+          ? propsText.substring(0, 200) + "..."
+          : propsText;
       addDetailsRow("Props:", propsPreview);
     }
 
     // HTML
     if (selectedElement.html) {
-      const htmlPreview = selectedElement.html.length > 400
-        ? selectedElement.html.substring(0, 400) + "..."
-        : selectedElement.html;
+      const htmlPreview =
+        selectedElement.html.length > 400
+          ? selectedElement.html.substring(0, 400) + "..."
+          : selectedElement.html;
       addDetailsRow("HTML:", htmlPreview);
     }
 
     // Styles
     if (selectedElement.styles) {
-      const stylesPreview = selectedElement.styles.length > 400
-        ? selectedElement.styles.substring(0, 400) + "..."
-        : selectedElement.styles;
+      const stylesPreview =
+        selectedElement.styles.length > 400
+          ? selectedElement.styles.substring(0, 400) + "..."
+          : selectedElement.styles;
       addDetailsRow("Styles:", stylesPreview);
     }
   }
 
   function addDetailsRow(label, value) {
-    const row = document.createElement('div');
-    row.className = 'details-row';
+    const row = document.createElement("div");
+    row.className = "details-row";
 
-    const labelSpan = document.createElement('span');
-    labelSpan.className = 'details-label';
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "details-label";
     labelSpan.innerText = label;
 
-    const valueSpan = document.createElement('span');
-    valueSpan.className = 'details-value';
+    const valueSpan = document.createElement("span");
+    valueSpan.className = "details-value";
     valueSpan.innerText = value;
 
     row.appendChild(labelSpan);
@@ -288,11 +306,14 @@ document.addEventListener("DOMContentLoaded", function () {
       if (selectedElement.component.file) {
         prompt += `\n- File: ${selectedElement.component.file}`;
       }
-      if (propsOption.classList.contains("enabled") && selectedElement.component.props) {
+      if (
+        propsOption.classList.contains("enabled") &&
+        selectedElement.component.props
+      ) {
         prompt += `\n- Props: ${JSON.stringify(
           selectedElement.component.props,
           null,
-          2,
+          2
         )}`;
       }
     }
@@ -329,62 +350,65 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   async function checkConnectionStatus() {
-    const port = portInput.value.trim() || '47923';
+    const port = portInput.value.trim() || "47923";
     try {
       const response = await fetch(`http://127.0.0.1:${port}/health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(2000) // 2 second timeout
+        method: "GET",
+        signal: AbortSignal.timeout(2000), // 2 second timeout
       });
       if (response.ok) {
         const healthData = await response.json();
-        const version = healthData.version ? `v${healthData.version}` : '';
-        setConnectionStatus(true, version ? `connected ${version}` : 'connected');
+        const version = healthData.version ? `v${healthData.version}` : "";
+        setConnectionStatus(
+          true,
+          version ? `connected ${version}` : "connected"
+        );
       } else {
-        setConnectionStatus(false, 'error');
+        setConnectionStatus(false, "error");
       }
     } catch (error) {
-      setConnectionStatus(false, 'disconnected');
+      setConnectionStatus(false, "disconnected");
     }
   }
 
   function setConnectionStatus(connected, statusText) {
     if (connected) {
-      statusDot.classList.remove('disconnected');
+      statusDot.classList.remove("disconnected");
       connectionStatus.textContent = statusText;
     } else {
-      statusDot.classList.add('disconnected');
+      statusDot.classList.add("disconnected");
       connectionStatus.textContent = statusText;
     }
   }
 
   function autoResizeTextarea(textarea) {
     // Reset height to allow scrollHeight to be calculated correctly
-    textarea.style.height = '80px'; // min-height
+    textarea.style.height = "80px"; // min-height
 
     // Calculate new height based on content
     const scrollHeight = textarea.scrollHeight;
     const newHeight = Math.min(Math.max(scrollHeight, 80), 200); // min: 80px, max: 200px
 
-    textarea.style.height = newHeight + 'px';
+    textarea.style.height = newHeight + "px";
   }
 
   function loadCheckboxPreferences() {
-    const preferences = localStorage.getItem('claude-devtools-checkboxes');
+    const preferences = localStorage.getItem("claude-devtools-checkboxes");
     if (preferences) {
       try {
         const prefs = JSON.parse(preferences);
 
         if (prefs.screenshot !== undefined) {
-          screenshotOption.classList.toggle('enabled', prefs.screenshot);
+          screenshotOption.classList.toggle("enabled", prefs.screenshot);
         }
         if (prefs.styles !== undefined) {
-          stylesOption.classList.toggle('enabled', prefs.styles);
+          stylesOption.classList.toggle("enabled", prefs.styles);
         }
         if (prefs.dom !== undefined) {
-          domOption.classList.toggle('enabled', prefs.dom);
+          domOption.classList.toggle("enabled", prefs.dom);
         }
         if (prefs.props !== undefined) {
-          propsOption.classList.toggle('enabled', prefs.props);
+          propsOption.classList.toggle("enabled", prefs.props);
         }
       } catch (e) {
         // If parsing fails, use default values (all enabled as per HTML)
@@ -394,34 +418,38 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function saveCheckboxPreferences() {
     const preferences = {
-      screenshot: screenshotOption.classList.contains('enabled'),
-      styles: stylesOption.classList.contains('enabled'),
-      dom: domOption.classList.contains('enabled'),
-      props: propsOption.classList.contains('enabled')
+      screenshot: screenshotOption.classList.contains("enabled"),
+      styles: stylesOption.classList.contains("enabled"),
+      dom: domOption.classList.contains("enabled"),
+      props: propsOption.classList.contains("enabled"),
     };
-    localStorage.setItem('claude-devtools-checkboxes', JSON.stringify(preferences));
+    localStorage.setItem(
+      "claude-devtools-checkboxes",
+      JSON.stringify(preferences)
+    );
   }
 
   function applyDevToolsTheme() {
     // DevTools theme detection
-    const isDark = chrome.devtools?.panels?.themeName === 'dark' ||
-                   window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ||
-                   false;
+    const isDark =
+      chrome.devtools?.panels?.themeName === "dark" ||
+      window.matchMedia?.("(prefers-color-scheme: dark)")?.matches ||
+      false;
 
     if (isDark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
+      document.documentElement.setAttribute("data-theme", "dark");
     } else {
-      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.removeAttribute("data-theme");
     }
 
     // Listen for theme changes
     if (window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', (e) => {
+      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQuery.addEventListener("change", (e) => {
         if (e.matches) {
-          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.setAttribute("data-theme", "dark");
         } else {
-          document.documentElement.removeAttribute('data-theme');
+          document.documentElement.removeAttribute("data-theme");
         }
       });
     }
@@ -429,59 +457,216 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function updateSendButtonText() {
     // Detect platform for keyboard shortcut display
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 ||
-                  navigator.userAgent.indexOf('Mac OS X') !== -1;
-    const shortcut = isMac ? 'Cmd+Enter' : 'Ctrl+Enter';
+    const isMac =
+      navigator.platform.toUpperCase().indexOf("MAC") >= 0 ||
+      navigator.userAgent.indexOf("Mac OS X") !== -1;
+    const shortcut = isMac ? "Cmd+Enter" : "Ctrl+Enter";
     sendToClaudeBtn.textContent = `Send (${shortcut})`;
   }
 
-  chrome.runtime.onMessage.addListener(
-    function (request, sender, sendResponse) {
-      if (request.type === "CAPTURE_ELEMENT") {
-        chrome.tabs.captureVisibleTab(
-          null,
-          { format: "png" },
-          function (dataUrl) {
-            if (chrome.runtime.lastError) {
-              sendResponse(null);
-              return;
-            }
+  chrome.runtime.onMessage.addListener(function (
+    request,
+    sender,
+    sendResponse
+  ) {
+    if (request.type === "CAPTURE_ELEMENT") {
+      chrome.tabs.captureVisibleTab(
+        null,
+        { format: "png" },
+        function (dataUrl) {
+          if (chrome.runtime.lastError) {
+            sendResponse(null);
+            return;
+          }
 
-            const img = new Image();
-            img.onload = function () {
-              const canvas = document.createElement("canvas");
-              const ctx = canvas.getContext("2d");
+          const img = new Image();
+          img.onload = function () {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
 
-              const dpr = request.rect.dpr || 1;
-              const scaledX = request.rect.x * dpr;
-              const scaledY = request.rect.y * dpr;
-              const scaledWidth = request.rect.width * dpr;
-              const scaledHeight = request.rect.height * dpr;
+            const dpr = request.rect.dpr || 1;
+            const scaledX = request.rect.x * dpr;
+            const scaledY = request.rect.y * dpr;
+            const scaledWidth = request.rect.width * dpr;
+            const scaledHeight = request.rect.height * dpr;
 
-              canvas.width = request.rect.width;
-              canvas.height = request.rect.height;
+            canvas.width = request.rect.width;
+            canvas.height = request.rect.height;
 
-              ctx.drawImage(
-                img,
-                scaledX,
-                scaledY,
-                scaledWidth,
-                scaledHeight,
-                0,
-                0,
-                request.rect.width,
-                request.rect.height,
-              );
+            ctx.drawImage(
+              img,
+              scaledX,
+              scaledY,
+              scaledWidth,
+              scaledHeight,
+              0,
+              0,
+              request.rect.width,
+              request.rect.height
+            );
 
-              sendResponse(canvas.toDataURL("image/png"));
-            };
-            img.src = dataUrl;
+            sendResponse(canvas.toDataURL("image/png"));
+          };
+          img.src = dataUrl;
+        }
+      );
+      return true;
+    }
+  });
+
+  async function getFunctionSourceLocation(debuggee, objectId) {
+    const propertiesResult = await new Promise((resolve) => {
+      chrome.debugger.sendCommand(
+        debuggee,
+        "Runtime.getProperties",
+        { objectId },
+        resolve
+      );
+    });
+
+    const functionLocationProp = propertiesResult.internalProperties?.find(
+      (prop) => prop.name === "[[FunctionLocation]]"
+    );
+
+    if (!functionLocationProp?.value?.value) {
+      return null;
+    }
+
+    const location = functionLocationProp.value.value;
+    const scriptId = location.scriptId;
+    const lineNumber = location.lineNumber;
+    const columnNumber = location.columnNumber;
+
+    await new Promise((resolve) => {
+      chrome.debugger.sendCommand(debuggee, "Debugger.disable", {}, resolve);
+    });
+
+    const scriptPromise = new Promise((resolveScript) => {
+      chrome.debugger.onEvent.addListener((source, method, params) => {
+        if (
+          source.tabId === debuggee.tabId &&
+          method === "Debugger.scriptParsed" &&
+          params.scriptId === scriptId
+        ) {
+          resolveScript({
+            url: params.url,
+            sourceMapURL: params.sourceMapURL,
+          });
+        }
+      });
+    });
+
+    await new Promise((resolve) => {
+      chrome.debugger.sendCommand(debuggee, "Debugger.enable", {}, resolve);
+    });
+
+    const scriptInfo = await scriptPromise;
+
+    let fileName = scriptInfo.url || `script-${scriptId}`;
+    let finalLineNumber = lineNumber;
+
+    if (
+      scriptInfo.sourceMapURL &&
+      scriptInfo.sourceMapURL.startsWith("data:application/json;base64,")
+    ) {
+      try {
+        const base64Data = scriptInfo.sourceMapURL.split(",")[1];
+        const sourceMapJson = atob(base64Data);
+        const sourceMapData = JSON.parse(sourceMapJson);
+
+        const consumer = await new sourceMap.SourceMapConsumer(sourceMapData);
+
+        const originalPosition = consumer.originalPositionFor({
+          line: lineNumber + 1,
+          column: columnNumber,
+        });
+
+        if (originalPosition.source) {
+          const scriptUrl = new URL(scriptInfo.url);
+          const sourceRoot = sourceMapData.sourceRoot || '';
+          const sourcePath = sourceRoot ? `${sourceRoot}/${originalPosition.source}` : originalPosition.source;
+
+          if (!sourcePath.startsWith('http') && !sourcePath.startsWith('/')) {
+            const scriptDir = scriptUrl.pathname.substring(0, scriptUrl.pathname.lastIndexOf('/'));
+            const fullPath = `${scriptDir}/${sourcePath}`;
+            fileName = fullPath.replace(/\/+/g, '/');
+          } else if (sourcePath.startsWith('/')) {
+            fileName = sourcePath;
+          } else {
+            fileName = new URL(sourcePath).pathname;
+          }
+
+          if (fileName.startsWith('/')) {
+            fileName = fileName.substring(1);
+          }
+
+          finalLineNumber = originalPosition.line;
+        }
+
+        consumer.destroy();
+      } catch (error) {}
+    }
+
+    if (fileName === scriptInfo.url && scriptInfo.url) {
+      const urlParts = scriptInfo.url.split("/");
+      const fullName = urlParts[urlParts.length - 1];
+      fileName = fullName.split("?")[0];
+    }
+
+    return `${fileName}:${finalLineNumber}`;
+  }
+
+  async function getReactSourceLocation(elementId) {
+    const debuggee = { tabId: chrome.devtools.inspectedWindow.tabId };
+
+    try {
+      await new Promise((resolve, reject) => {
+        chrome.debugger.attach(debuggee, "1.3", () => {
+          if (chrome.runtime.lastError) {
+            reject(chrome.runtime.lastError);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      const fiberKeyExpression = `Object.keys(document.querySelector('[data-claude-devtools-id="${elementId}"]')).find(key => key.startsWith('__reactFiber'))`;
+
+      const evalResult = await new Promise((resolve) => {
+        chrome.debugger.sendCommand(
+          debuggee,
+          "Runtime.evaluate",
+          {
+            expression: `document.querySelector('[data-claude-devtools-id="${elementId}"]')[${fiberKeyExpression}]._debugOwner.type`,
+            objectGroup: "console",
           },
+          resolve
         );
-        return true;
+      });
+
+      if (evalResult.result?.objectId) {
+        const sourceLocation = await getFunctionSourceLocation(
+          debuggee,
+          evalResult.result.objectId
+        );
+
+        chrome.debugger.detach(debuggee);
+
+        if (sourceLocation) {
+          selectedElement.component.file = sourceLocation;
+          chrome.storage.local.set({ selectedElement: selectedElement });
+        } else {
+          chrome.debugger.detach(debuggee);
+        }
+      } else {
+        chrome.debugger.detach(debuggee);
       }
-    },
-  );
+    } catch (error) {
+      try {
+        chrome.debugger.detach(debuggee);
+      } catch (e) {}
+    }
+  }
 
   async function getAngularSourceLocation(elementId) {
     const debuggee = { tabId: chrome.devtools.inspectedWindow.tabId };
@@ -505,116 +690,21 @@ document.addEventListener("DOMContentLoaded", function () {
             expression: `window.ng.getOwningComponent(document.querySelector('[data-claude-devtools-id="${elementId}"]')).constructor`,
             objectGroup: "console",
           },
-          resolve,
+          resolve
         );
       });
 
       if (evalResult.result?.objectId) {
-        const propertiesResult = await new Promise((resolve) => {
-          chrome.debugger.sendCommand(
-            debuggee,
-            "Runtime.getProperties",
-            {
-              objectId: evalResult.result.objectId,
-            },
-            resolve,
-          );
-        });
-
-        const functionLocationProp = propertiesResult.internalProperties?.find(
-          (prop) => prop.name === "[[FunctionLocation]]",
+        const sourceLocation = await getFunctionSourceLocation(
+          debuggee,
+          evalResult.result.objectId
         );
 
-        if (functionLocationProp?.value?.value) {
-          const location = functionLocationProp.value.value;
-          const scriptId = location.scriptId;
-          const lineNumber = location.lineNumber;
-          const columnNumber = location.columnNumber;
+        chrome.debugger.detach(debuggee);
 
-          // Disable debugger first
-          await new Promise((resolve) => {
-            chrome.debugger.sendCommand(
-              debuggee,
-              "Debugger.disable",
-              {},
-              resolve,
-            );
-          });
-
-          // Set up promise for script event
-          const scriptPromise = new Promise((resolveScript) => {
-            chrome.debugger.onEvent.addListener((source, method, params) => {
-              if (
-                source.tabId === debuggee.tabId &&
-                method === "Debugger.scriptParsed" &&
-                params.scriptId === scriptId
-              ) {
-                resolveScript({
-                  url: params.url,
-                  sourceMapURL: params.sourceMapURL,
-                });
-              }
-            });
-          });
-
-          // Re-enable debugger to trigger script events
-          await new Promise((resolve) => {
-            chrome.debugger.sendCommand(
-              debuggee,
-              "Debugger.enable",
-              {},
-              resolve,
-            );
-          });
-
-          // Wait for our specific script
-          const scriptInfo = await scriptPromise;
-
-          chrome.debugger.detach(debuggee);
-
-          let fileName = scriptInfo.url || `script-${scriptId}`;
-          let finalLineNumber = lineNumber;
-          let finalColumnNumber = columnNumber;
-
-          if (
-            scriptInfo.sourceMapURL &&
-            scriptInfo.sourceMapURL.startsWith("data:application/json;base64,")
-          ) {
-            try {
-              const base64Data = scriptInfo.sourceMapURL.split(",")[1];
-              const sourceMapJson = atob(base64Data);
-              const sourceMapData = JSON.parse(sourceMapJson);
-
-              const consumer = await new sourceMap.SourceMapConsumer(
-                sourceMapData,
-              );
-
-              const originalPosition = consumer.originalPositionFor({
-                line: lineNumber + 1, // source-map uses 1-based line numbers
-                column: columnNumber,
-              });
-
-              if (originalPosition.source) {
-                fileName = originalPosition.source;
-                finalLineNumber = originalPosition.line;
-              }
-
-              consumer.destroy();
-            } catch (error) {
-              // Silently fall back to compiled location
-            }
-          }
-
-          if (fileName === scriptInfo.url && scriptInfo.url) {
-            const urlParts = scriptInfo.url.split("/");
-            const fullName = urlParts[urlParts.length - 1];
-            fileName = fullName.split("?")[0];
-          }
-
-          selectedElement.component.file = `${fileName}:${finalLineNumber}`;
+        if (sourceLocation) {
+          selectedElement.component.file = sourceLocation;
           chrome.storage.local.set({ selectedElement: selectedElement });
-        } else {
-          chrome.debugger.detach(debuggee);
         }
       } else {
         chrome.debugger.detach(debuggee);

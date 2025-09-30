@@ -12,7 +12,7 @@ import { UserCardComponent, User } from './user-card/user-card.component';
   styleUrl: './app.component.css'
 })
 export class AppComponent {
-  title = 'Angular 17 Component Testing';
+  title = 'Hello from Claude DevTools';
 
   // Sample data for testing
   users: User[] = [

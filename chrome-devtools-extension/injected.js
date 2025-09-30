@@ -14,7 +14,7 @@
 
     getReactInfo(element) {
       const fiberKey = Object.keys(element).find((key) =>
-        key.startsWith("__reactFiber"),
+        key.startsWith("__reactFiber")
       );
 
       if (!fiberKey) return null;
@@ -23,7 +23,10 @@
       if (!fiber?._debugOwner?.elementType) return null;
 
       const componentType = fiber._debugOwner.elementType;
-      const name = componentType.name || componentType.displayName;
+      const name =
+        componentType.name ||
+        componentType.displayName ||
+        fiber._debugOwner.type?.name;
 
       if (!name || this.isReactInternal(name)) return null;
 
@@ -53,6 +56,8 @@
             }
           }
         }
+      } else {
+        fileName = "not available";
       }
 
       return {
@@ -61,7 +66,9 @@
         file:
           fileName && lineNumber
             ? `${fileName}:${lineNumber}`
-            : "not available",
+            : fileName,
+        needsSourceDetection: !fileName || !lineNumber,
+        elementId: element.getAttribute("data-claude-devtools-id"),
       };
     }
 
@@ -89,7 +96,8 @@
               ? component.constructor.name.substring(1)
               : component.constructor.name,
             props: Object.keys(props).length > 0 ? props : null,
-            file: "detecting...",
+            file: "not available",
+            needsSourceDetection: true,
             elementId: element.getAttribute("data-claude-devtools-id"),
           };
         }
@@ -119,7 +127,7 @@
     if (event.data?.type === "CLAUDE_DEVTOOLS_GET_COMPONENT_INFO") {
       const elementId = event.data.elementId;
       const element = document.querySelector(
-        `[data-claude-devtools-id="${elementId}"]`,
+        `[data-claude-devtools-id="${elementId}"]`
       );
       const componentInfo = element ? detector.getComponentInfo(element) : null;
 
@@ -129,6 +137,7 @@
             framework: componentInfo.framework,
             file: componentInfo.file,
             props: sanitizeProps(componentInfo.props),
+            needsSourceDetection: componentInfo.needsSourceDetection,
           }
         : null;
 
@@ -138,7 +147,7 @@
           id: event.data.id,
           componentInfo: sanitizedInfo,
         },
-        "*",
+        "*"
       );
     }
   });

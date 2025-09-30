@@ -68,6 +68,11 @@
         font-weight: normal;
         margin-right: 4px;
       }
+      .header-version {
+        color: var(--text-muted);
+        font-size: 10px;
+        margin-left: 4px;
+      }
       .connection-status {
         display: flex;
         align-items: center;
@@ -286,6 +291,7 @@
     <div class="header">
       <img src="claude.png" class="header-icon" alt="Claude" />
       <span class="header-title">Claude DevTools</span>
+      <span class="header-version" id="extensionVersion"></span>
       <div class="connection-status">
         <div class="status-dot" id="statusDot"></div>
         <span id="connectionStatus">connected</span>
