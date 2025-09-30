@@ -9,6 +9,7 @@ sourceMap.SourceMapConsumer.initialize({
 
 document.addEventListener("DOMContentLoaded", function () {
   const pickElementBtn = document.getElementById("pickElement");
+  const pickButtonText = document.querySelector(".pick-button-text");
   const sendToClaudeBtn = document.getElementById("sendToClaude");
   const promptText = document.getElementById("promptText");
   const detailsContainer = document.getElementById("detailsContainer");
@@ -201,10 +202,10 @@ document.addEventListener("DOMContentLoaded", function () {
   function setPickingState(picking) {
     isPicking = picking;
     if (picking) {
-      pickElementBtn.textContent = "Cancel Picking";
+      pickButtonText.textContent = "Cancel Picking";
       pickElementBtn.classList.remove("primary");
     } else {
-      pickElementBtn.textContent = "Pick Element";
+      pickButtonText.textContent = "Pick Element";
       pickElementBtn.classList.add("primary");
     }
   }
