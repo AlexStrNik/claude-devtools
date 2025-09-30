@@ -166,6 +166,12 @@ fastify.get("/health", async (request, reply) => {
   };
 });
 
+fastify.get("/project-root", async (request, reply) => {
+  return {
+    projectRoot: process.cwd(),
+  };
+});
+
 const start = async () => {
   try {
     const port = process.env.PORT || 47923;

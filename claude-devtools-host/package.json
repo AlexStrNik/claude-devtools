@@ -1,6 +1,6 @@
 {
   "name": "@alexstrnik/claude-devtools",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Host server for Claude DevTools Chrome extension",
   "main": "server.js",
   "bin": {

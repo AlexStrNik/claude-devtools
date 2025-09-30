@@ -1,5 +1,6 @@
 let selectedElement = null;
 let isPicking = false;
+let projectRoot = null;
 
 // Initialize source-map library
 sourceMap.SourceMapConsumer.initialize({
@@ -233,7 +234,8 @@ document.addEventListener("DOMContentLoaded", function () {
         selectedElement.component.file &&
         selectedElement.component.file !== "detecting..."
       ) {
-        addDetailsRow("File:", selectedElement.component.file);
+        const displayFile = makePathRelativeToProject(selectedElement.component.file);
+        addDetailsRow("File:", displayFile);
       }
     }
 
@@ -303,7 +305,8 @@ document.addEventListener("DOMContentLoaded", function () {
         prompt += `\n- Framework: ${selectedElement.component.framework}`;
       }
       if (selectedElement.component.file) {
-        prompt += `\n- File: ${selectedElement.component.file}`;
+        const displayFile = makePathRelativeToProject(selectedElement.component.file);
+        prompt += `\n- File: ${displayFile}`;
       }
       if (
         propsOption.classList.contains("enabled") &&
@@ -348,36 +351,86 @@ document.addEventListener("DOMContentLoaded", function () {
     return result.serverPort || 47923;
   }
 
+  function compareVersions(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+      const part1 = parts1[i] || 0;
+      const part2 = parts2[i] || 0;
+      if (part1 > part2) return 1;
+      if (part1 < part2) return -1;
+    }
+    return 0;
+  }
+
+  function makePathRelativeToProject(absolutePath) {
+    if (!projectRoot || !absolutePath) return absolutePath;
+
+    const normalizedPath = absolutePath.replace(/\\/g, '/');
+    const normalizedRoot = projectRoot.replace(/\\/g, '/');
+
+    if (normalizedPath.startsWith(normalizedRoot)) {
+      let relative = normalizedPath.substring(normalizedRoot.length);
+      if (relative.startsWith('/')) {
+        relative = relative.substring(1);
+      }
+      return relative;
+    }
+
+    return absolutePath;
+  }
+
   async function checkConnectionStatus() {
     const port = portInput.value.trim() || "47923";
+    const configResponse = await fetch(chrome.runtime.getURL('config.json'));
+    const config = await configResponse.json();
+    const MINIMAL_HOST_VERSION = config.host_version_requirements?.minimal || "0.0.0";
+    const RECOMMENDED_HOST_VERSION = config.host_version_requirements?.recommended || "0.0.0";
+
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/health`, {
-        method: "GET",
-        signal: AbortSignal.timeout(2000), // 2 second timeout
-      });
-      if (response.ok) {
-        const healthData = await response.json();
-        const version = healthData.version ? `v${healthData.version}` : "";
-        setConnectionStatus(
-          true,
-          version ? `connected ${version}` : "connected"
-        );
+      const [healthResponse, projectRootResponse] = await Promise.all([
+        fetch(`http://127.0.0.1:${port}/health`, {
+          method: "GET",
+          signal: AbortSignal.timeout(2000),
+        }),
+        fetch(`http://127.0.0.1:${port}/project-root`, {
+          method: "GET",
+          signal: AbortSignal.timeout(2000),
+        }).catch(() => null),
+      ]);
+
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.json();
+        const version = healthData.version || "0.0.0";
+
+        if (projectRootResponse && projectRootResponse.ok) {
+          const data = await projectRootResponse.json();
+          projectRoot = data.projectRoot;
+        }
+
+        if (compareVersions(version, MINIMAL_HOST_VERSION) < 0) {
+          setConnectionStatus("error", `unsupported version (${version})`);
+        } else if (compareVersions(version, RECOMMENDED_HOST_VERSION) < 0) {
+          setConnectionStatus("warning", `connected (outdated, not all features may work)`);
+        } else {
+          setConnectionStatus("connected", `connected v${version}`);
+        }
       } else {
-        setConnectionStatus(false, "error");
+        setConnectionStatus("error", "error");
       }
     } catch (error) {
-      setConnectionStatus(false, "disconnected");
+      setConnectionStatus("error", "disconnected");
     }
   }
 
-  function setConnectionStatus(connected, statusText) {
-    if (connected) {
-      statusDot.classList.remove("disconnected");
-      connectionStatus.textContent = statusText;
-    } else {
+  function setConnectionStatus(state, statusText) {
+    statusDot.classList.remove("disconnected", "warning");
+    if (state === "error") {
       statusDot.classList.add("disconnected");
-      connectionStatus.textContent = statusText;
+    } else if (state === "warning") {
+      statusDot.classList.add("warning");
     }
+    connectionStatus.textContent = statusText;
   }
 
   function autoResizeTextarea(textarea) {
@@ -611,6 +664,8 @@ document.addEventListener("DOMContentLoaded", function () {
       const fullName = urlParts[urlParts.length - 1];
       fileName = fullName.split("?")[0];
     }
+
+    fileName = makePathRelativeToProject(fileName);
 
     return `${fileName}:${finalLineNumber}`;
   }

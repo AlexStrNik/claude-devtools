@@ -34,10 +34,10 @@
       let lineNumber = "";
 
       if (fiber._debugSource) {
-        fileName = this.stripAbsolutePath(fiber._debugSource.fileName);
+        fileName = fiber._debugSource.fileName;
         lineNumber = fiber._debugSource.lineNumber;
       } else if (fiber._debugOwner._debugSource) {
-        fileName = this.stripAbsolutePath(fiber._debugOwner._debugSource.fileName);
+        fileName = fiber._debugOwner._debugSource.fileName;
         lineNumber = fiber._debugOwner._debugSource.lineNumber;
       } else if (fiber._debugOwner._debugStack) {
         const stack = fiber._debugOwner._debugStack.stack;
@@ -112,14 +112,6 @@
     isReactInternal(name) {
       const internals = ["Fragment", "StrictMode", "Profiler", "Suspense"];
       return internals.includes(name) || name.startsWith("React.");
-    }
-
-    stripAbsolutePath(path) {
-      const index = path.indexOf("/src/");
-      if (index !== -1) {
-        return path.substring(index + 1);
-      }
-      return path;
     }
   }
 
