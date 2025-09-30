@@ -21,32 +21,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const propsOption = document.getElementById("propsOption");
   const pickStatus = document.getElementById("pickStatus");
 
-  // Clear all old data - start fresh each time
   chrome.storage.local.remove(["selectedElement", "promptText"]);
 
-  // Load saved port from localStorage
   const savedPort = localStorage.getItem('claude-devtools-port');
   if (savedPort) {
     portInput.value = savedPort;
   }
 
-  // Load saved checkbox preferences
   loadCheckboxPreferences();
-
-  // Detect and apply DevTools theme
   applyDevToolsTheme();
-
-  // Check initial connection status
   checkConnectionStatus();
   updateUI();
-
-  // Set up periodic connection status check every 30 seconds
   setInterval(checkConnectionStatus, 30000);
-
-  // Initialize textarea auto-resize
   autoResizeTextarea(promptText);
-
-  // Update button text with platform-specific shortcut
   updateSendButtonText();
 
   // Listen for storage changes (when element is selected)
@@ -91,7 +78,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!sendToClaudeBtn.disabled) {
+        // Trigger the send function directly to avoid timing issues
         sendToClaudeBtn.click();
+        // Force updateUI after the async operation
+        setTimeout(updateUI, 100);
       }
     }
   });
@@ -281,9 +271,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateUI() {
-    const shouldDisable = !selectedElement || !promptText.value.trim();
-    console.log('updateUI:', { selectedElement: !!selectedElement, promptValue: promptText.value, shouldDisable });
-    sendToClaudeBtn.disabled = shouldDisable;
+    sendToClaudeBtn.disabled = !selectedElement || !promptText.value.trim();
   }
 
   function buildPrompt() {
