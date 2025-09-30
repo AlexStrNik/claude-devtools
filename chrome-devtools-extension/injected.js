@@ -107,23 +107,12 @@
   const detector = new FrameworkDetector();
 
   function sanitizeProps(props) {
-    if (!props || typeof props !== "object") return props;
-
-    const sanitized = {};
-    for (const [key, value] of Object.entries(props)) {
-      if (typeof value === "function") {
-        sanitized[key] = "[Function]";
-      } else if (typeof value === "object" && value !== null) {
-        if (value.constructor === Object || Array.isArray(value)) {
-          sanitized[key] = sanitizeProps(value);
-        } else {
-          sanitized[key] = "[Object]";
-        }
-      } else {
-        sanitized[key] = value;
-      }
+    if (!props) return null;
+    try {
+      return JSON.parse(JSON.stringify(props));
+    } catch (error) {
+      return null;
     }
-    return sanitized;
   }
 
   window.addEventListener("message", function (event) {

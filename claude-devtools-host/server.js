@@ -12,6 +12,8 @@ if (process.argv.includes('--version') || process.argv.includes('-v')) {
   process.exit(0);
 }
 
+const claudeArgs = process.argv.slice(2);
+
 // Only import clipboard-image on macOS
 let writeClipboardImages = null;
 if (os.platform() === "darwin") {
@@ -35,7 +37,7 @@ function startClaudeProcess() {
     return claudePty;
   }
 
-  claudePty = pty.spawn("claude", [], {
+  claudePty = pty.spawn("claude", claudeArgs, {
     name: "xterm-256color",
     cols: process.stdout.columns || 80,
     rows: process.stdout.rows || 30,
