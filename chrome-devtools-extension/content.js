@@ -56,7 +56,7 @@ class ClaudeDevTools {
     this.instructions = document.createElement("div");
     this.instructions.className = "claude-devtools-instructions";
     this.instructions.innerHTML = `
-      Click any element to select • <span class="key">ESC</span> to cancel
+      Click any element to select • Click "Cancel Picking" to stop
     `;
     document.body.appendChild(this.instructions);
 

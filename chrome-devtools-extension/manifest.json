@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Claude DevTools",
-  "version": "1.0.0",
+  "version": "0.0.6",
   "description": "Pick elements and send them to Claude with React/Angular/Vue component detection",
   "permissions": ["activeTab", "storage", "tabs", "debugger", "scripting"],
   "host_permissions": ["<all_urls>"],
@@ -10,10 +10,10 @@
   },
   "devtools_page": "devtools.html",
   "icons": {
-    "16": "icon.svg",
-    "32": "icon.svg",
-    "48": "icon.svg",
-    "128": "icon.svg"
+    "16": "claude.png",
+    "32": "claude.png",
+    "48": "claude.png",
+    "128": "claude.png"
   },
   "content_scripts": [
     {

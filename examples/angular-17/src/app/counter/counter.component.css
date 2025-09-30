@@ -1,11 +1,16 @@
 .counter-container {
-  border: 2px solid #dc3545;
+  border: 2px solid blue;
   border-radius: 8px;
   padding: 20px;
   margin: 10px;
   text-align: center;
   background-color: #f8f9fa;
   max-width: 300px;
+  color: #28a745;
+}
+
+.counter-container h3 {
+  font-style: italic;
 }
 
 .counter-display {
@@ -13,7 +18,7 @@
 }
 
 .count-value {
-  font-size: 2em;
+  font-size: 1em;
   font-weight: bold;
   color: #dc3545;
   background: white;

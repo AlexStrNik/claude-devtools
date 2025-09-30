@@ -22,16 +22,15 @@ pnpm add -g @alexstrnik/claude-devtools
 
 ### 2. Install the Chrome extension
 
-**Option A: Download latest release**
+**Option A: Download latest release** (Easiest)
 1. Go to [Releases](https://github.com/AlexStrNik/claude-devtools/releases/latest)
 2. Download `claude-devtools-extension-vX.X.X.zip`
-3. Extract the zip file
-4. Open Chrome → Extensions → Developer mode
-5. Click **Load unpacked** → select the extracted folder
+3. Open Chrome → Extensions → Enable **Developer mode**
+4. **Drag and drop** the zip file directly onto the Extensions page
 
 **Option B: Clone from source**
 1. Clone this repo: `git clone https://github.com/AlexStrNik/claude-devtools`
-2. Open Chrome → Extensions → Developer mode
+2. Open Chrome → Extensions → Enable **Developer mode**
 3. Click **Load unpacked** → select `chrome-devtools-extension` folder
 
 ### 3. Start the host server

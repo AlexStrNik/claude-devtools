@@ -3,10 +3,11 @@
   position: fixed !important;
   pointer-events: none !important;
   z-index: 999999 !important;
-  border: 2px solid #007aff !important;
-  background-color: rgba(0, 122, 255, 0.1) !important;
+  border: 2px solid #C15F3C !important;
+  background-color: rgba(193, 95, 60, 0.1) !important;
   box-sizing: border-box !important;
   display: none !important;
+  border-radius: 2px !important;
 }
 
 .claude-devtools-highlighter.active {
@@ -15,13 +16,13 @@
 
 .claude-devtools-label {
   position: fixed !important;
-  background: #007aff !important;
-  color: white !important;
+  background: #C15F3C !important;
+  color: #F4F3EE !important;
   font-size: 11px !important;
   padding: 2px 6px !important;
-  border-radius: 3px !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  font-weight: 500 !important;
+  border-radius: 2px !important;
+  font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace !important;
+  font-weight: normal !important;
   white-space: nowrap !important;
   z-index: 1000000 !important;
   pointer-events: none !important;
@@ -38,7 +39,7 @@
   left: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: rgba(0, 0, 0, 0.3) !important;
+  background: rgba(42, 38, 33, 0.4) !important;
   z-index: 999998 !important;
   pointer-events: none !important;
 }
@@ -48,20 +49,22 @@
   top: 20px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
-  background: #1a1a1a !important;
-  color: white !important;
-  padding: 12px 20px !important;
-  border-radius: 8px !important;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-  font-size: 14px !important;
+  background: #2A2621 !important;
+  color: #F4F3EE !important;
+  padding: 8px 12px !important;
+  border-radius: 2px !important;
+  font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace !important;
+  font-size: 12px !important;
   z-index: 1000001 !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
 }
 
 .claude-devtools-instructions .key {
-  background: #333 !important;
+  background: rgba(244, 243, 238, 0.2) !important;
+  color: #C15F3C !important;
   padding: 2px 6px !important;
-  border-radius: 3px !important;
-  font-size: 12px !important;
+  border-radius: 2px !important;
+  font-size: 11px !important;
   margin: 0 2px !important;
+  border: 1px solid rgba(193, 95, 60, 0.3) !important;
 }

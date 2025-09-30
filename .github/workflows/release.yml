@@ -31,6 +31,10 @@ jobs:
           cd claude-devtools-host
           pnpm install --no-frozen-lockfile
 
+      - name: Copy README to package
+        run: |
+          cp README.md claude-devtools-host/
+
       - name: Package Chrome Extension
         run: |
           cd chrome-devtools-extension

@@ -1,7 +1,7 @@
 // Create the Claude DevTools panel
 chrome.devtools.panels.create(
   "Claude",
-  "icon.svg",
+  "claude.svg",
   "panel.html",
   function (panel) {
     console.log("Claude DevTools panel created");

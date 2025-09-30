@@ -10,17 +10,44 @@ document.addEventListener("DOMContentLoaded", function () {
   const pickElementBtn = document.getElementById("pickElement");
   const sendToClaudeBtn = document.getElementById("sendToClaude");
   const promptText = document.getElementById("promptText");
-  const selectedInfo = document.getElementById("selectedInfo");
+  const detailsContainer = document.getElementById("detailsContainer");
   const status = document.getElementById("status");
-  const pickingIndicator = document.getElementById("pickingIndicator");
-  const includeImageCheckbox = document.getElementById("includeImage");
-  const includeStylesCheckbox = document.getElementById("includeStyles");
-  const includeDomCheckbox = document.getElementById("includeDom");
-  const includePropsCheckbox = document.getElementById("includeProps");
+  const statusDot = document.getElementById("statusDot");
+  const connectionStatus = document.getElementById("connectionStatus");
+  const portInput = document.getElementById("portInput");
+  const screenshotOption = document.getElementById("screenshotOption");
+  const stylesOption = document.getElementById("stylesOption");
+  const domOption = document.getElementById("domOption");
+  const propsOption = document.getElementById("propsOption");
+  const pickStatus = document.getElementById("pickStatus");
 
   // Clear all old data - start fresh each time
   chrome.storage.local.remove(["selectedElement", "promptText"]);
+
+  // Load saved port from localStorage
+  const savedPort = localStorage.getItem('claude-devtools-port');
+  if (savedPort) {
+    portInput.value = savedPort;
+  }
+
+  // Load saved checkbox preferences
+  loadCheckboxPreferences();
+
+  // Detect and apply DevTools theme
+  applyDevToolsTheme();
+
+  // Check initial connection status
+  checkConnectionStatus();
   updateUI();
+
+  // Set up periodic connection status check every 30 seconds
+  setInterval(checkConnectionStatus, 30000);
+
+  // Initialize textarea auto-resize
+  autoResizeTextarea(promptText);
+
+  // Update button text with platform-specific shortcut
+  updateSendButtonText();
 
   // Listen for storage changes (when element is selected)
   chrome.storage.onChanged.addListener(function (changes, namespace) {
@@ -56,6 +83,34 @@ document.addEventListener("DOMContentLoaded", function () {
 
   promptText.addEventListener("input", function () {
     updateUI();
+    autoResizeTextarea(this);
+  });
+
+  // Add keyboard shortcut for submit (Cmd+Enter or Ctrl+Enter)
+  promptText.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      if (!sendToClaudeBtn.disabled) {
+        sendToClaudeBtn.click();
+      }
+    }
+  });
+
+  // Port input blur event for connection checking
+  portInput.addEventListener("blur", function () {
+    const port = portInput.value.trim();
+    if (port) {
+      localStorage.setItem('claude-devtools-port', port);
+      checkConnectionStatus();
+    }
+  });
+
+  // Option toggles
+  [screenshotOption, stylesOption, domOption, propsOption].forEach(option => {
+    option.addEventListener("click", function() {
+      this.classList.toggle("enabled");
+      saveCheckboxPreferences();
+    });
   });
 
   sendToClaudeBtn.addEventListener("click", async function () {
@@ -76,7 +131,7 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         body: JSON.stringify({
           prompt: buildPrompt(),
-          image: includeImageCheckbox.checked
+          image: screenshotOption.classList.contains("enabled")
             ? selectedElement.screenshot
             : null,
         }),
@@ -84,9 +139,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (response.ok) {
         showStatus("Sent to Claude successfully!", "success");
-        // Clear the prompt
+        // Clear the prompt and reset selection
         promptText.value = "";
+        selectedElement = null;
+        // Clear from storage as well
+        chrome.storage.local.remove(["selectedElement"]);
+        updateSelectedInfo();
         updateUI();
+        autoResizeTextarea(promptText);
       } else {
         showStatus(
           "Failed to send to Claude - is claude-devtools-host running?",
@@ -146,64 +206,84 @@ document.addEventListener("DOMContentLoaded", function () {
     if (picking) {
       pickElementBtn.textContent = "Cancel Picking";
       pickElementBtn.classList.remove("primary");
-      pickingIndicator.classList.add("active");
     } else {
       pickElementBtn.textContent = "Pick Element";
       pickElementBtn.classList.add("primary");
-      pickingIndicator.classList.remove("active");
     }
   }
 
   function updateSelectedInfo() {
     if (!selectedElement) {
-      selectedInfo.classList.add("hidden");
+      detailsContainer.innerHTML = '<div class="hint">Select an element to inspect</div>';
       return;
     }
 
-    selectedInfo.classList.remove("hidden");
+    // Clear container
+    detailsContainer.innerHTML = '';
 
-    document.getElementById("componentName").textContent =
-      selectedElement.component?.name || "Not detected";
-    document.getElementById("componentFile").textContent =
-      selectedElement.component?.file || "Not available";
-    document.getElementById("elementTag").textContent =
-      `<${selectedElement.tagName}>`;
-    document.getElementById("framework").textContent =
-      selectedElement.component?.framework || "None detected";
+    // Element info
+    addDetailsRow("Tag:", `<${selectedElement.tagName}>`);
 
-    // Show component props if available
-    const propsDetails = document.getElementById("componentPropsDetails");
-    const propsElement = document.getElementById("componentProps");
+    // Component info in order: Framework, Component, File
+    if (selectedElement.component) {
+      if (selectedElement.component.framework) {
+        addDetailsRow("Framework:", selectedElement.component.framework);
+      }
+      if (selectedElement.component.name) {
+        addDetailsRow("Component:", selectedElement.component.name);
+      }
+      if (selectedElement.component.file && selectedElement.component.file !== "detecting...") {
+        addDetailsRow("File:", selectedElement.component.file);
+      }
+    }
+
+    // Props info (if available and enabled)
     if (selectedElement.component?.props) {
-      propsElement.textContent = JSON.stringify(
-        selectedElement.component.props,
-        null,
-        2,
-      );
-      propsDetails.style.display = "block";
-    } else {
-      propsDetails.style.display = "none";
+      const propsText = JSON.stringify(selectedElement.component.props, null, 2);
+      const propsPreview = propsText.length > 200
+        ? propsText.substring(0, 200) + "..."
+        : propsText;
+      addDetailsRow("Props:", propsPreview);
     }
 
-    // Show screenshot if available
-    const preview = document.getElementById("elementPreview");
-    const screenshot = document.getElementById("elementScreenshot");
-    if (selectedElement.screenshot) {
-      screenshot.src = selectedElement.screenshot;
-      preview.style.display = "block";
-    } else {
-      preview.style.display = "none";
+    // HTML
+    if (selectedElement.html) {
+      const htmlPreview = selectedElement.html.length > 400
+        ? selectedElement.html.substring(0, 400) + "..."
+        : selectedElement.html;
+      addDetailsRow("HTML:", htmlPreview);
     }
 
-    // Show HTML and styles
-    document.getElementById("elementHTML").textContent =
-      selectedElement.html || "Not available";
-    document.getElementById("elementStyles").textContent =
-      selectedElement.styles || "Not available";
+    // Styles
+    if (selectedElement.styles) {
+      const stylesPreview = selectedElement.styles.length > 400
+        ? selectedElement.styles.substring(0, 400) + "..."
+        : selectedElement.styles;
+      addDetailsRow("Styles:", stylesPreview);
+    }
+  }
+
+  function addDetailsRow(label, value) {
+    const row = document.createElement('div');
+    row.className = 'details-row';
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'details-label';
+    labelSpan.innerText = label;
+
+    const valueSpan = document.createElement('span');
+    valueSpan.className = 'details-value';
+    valueSpan.innerText = value;
+
+    row.appendChild(labelSpan);
+    row.appendChild(valueSpan);
+    detailsContainer.appendChild(row);
   }
 
   function updateUI() {
-    sendToClaudeBtn.disabled = !selectedElement || !promptText.value.trim();
+    const shouldDisable = !selectedElement || !promptText.value.trim();
+    console.log('updateUI:', { selectedElement: !!selectedElement, promptValue: promptText.value, shouldDisable });
+    sendToClaudeBtn.disabled = shouldDisable;
   }
 
   function buildPrompt() {
@@ -220,7 +300,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (selectedElement.component.file) {
         prompt += `\n- File: ${selectedElement.component.file}`;
       }
-      if (includePropsCheckbox.checked && selectedElement.component.props) {
+      if (propsOption.classList.contains("enabled") && selectedElement.component.props) {
         prompt += `\n- Props: ${JSON.stringify(
           selectedElement.component.props,
           null,
@@ -229,11 +309,11 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
-    if (includeDomCheckbox.checked && selectedElement.html) {
+    if (domOption.classList.contains("enabled") && selectedElement.html) {
       prompt += `\n\nHTML Structure:\n\`\`\`html\n${selectedElement.html}\n\`\`\``;
     }
 
-    if (includeStylesCheckbox.checked && selectedElement.styles) {
+    if (stylesOption.classList.contains("enabled") && selectedElement.styles) {
       prompt += `\n\nComputed Styles:\n\`\`\`css\n${selectedElement.styles}\n\`\`\``;
     }
 
@@ -241,17 +321,130 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function showStatus(message, type) {
-    status.textContent = message;
-    status.className = `status ${type}`;
-    status.style.display = "block";
-    setTimeout(() => {
-      status.style.display = "none";
-    }, 5000);
+    pickStatus.textContent = message;
+    pickStatus.className = `pick-status ${type}`;
+    if (message.trim()) {
+      pickStatus.style.display = "inline";
+      setTimeout(() => {
+        pickStatus.textContent = "";
+        pickStatus.className = "pick-status";
+        pickStatus.style.display = "none";
+      }, 5000);
+    } else {
+      pickStatus.style.display = "none";
+    }
   }
 
   async function getServerPort() {
     const result = await chrome.storage.local.get(["serverPort"]);
     return result.serverPort || 47923;
+  }
+
+  async function checkConnectionStatus() {
+    const port = portInput.value.trim() || '47923';
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(2000) // 2 second timeout
+      });
+      if (response.ok) {
+        const healthData = await response.json();
+        const version = healthData.version ? `v${healthData.version}` : '';
+        setConnectionStatus(true, version ? `connected ${version}` : 'connected');
+      } else {
+        setConnectionStatus(false, 'error');
+      }
+    } catch (error) {
+      setConnectionStatus(false, 'disconnected');
+    }
+  }
+
+  function setConnectionStatus(connected, statusText) {
+    if (connected) {
+      statusDot.classList.remove('disconnected');
+      connectionStatus.textContent = statusText;
+    } else {
+      statusDot.classList.add('disconnected');
+      connectionStatus.textContent = statusText;
+    }
+  }
+
+  function autoResizeTextarea(textarea) {
+    // Reset height to allow scrollHeight to be calculated correctly
+    textarea.style.height = '80px'; // min-height
+
+    // Calculate new height based on content
+    const scrollHeight = textarea.scrollHeight;
+    const newHeight = Math.min(Math.max(scrollHeight, 80), 200); // min: 80px, max: 200px
+
+    textarea.style.height = newHeight + 'px';
+  }
+
+  function loadCheckboxPreferences() {
+    const preferences = localStorage.getItem('claude-devtools-checkboxes');
+    if (preferences) {
+      try {
+        const prefs = JSON.parse(preferences);
+
+        if (prefs.screenshot !== undefined) {
+          screenshotOption.classList.toggle('enabled', prefs.screenshot);
+        }
+        if (prefs.styles !== undefined) {
+          stylesOption.classList.toggle('enabled', prefs.styles);
+        }
+        if (prefs.dom !== undefined) {
+          domOption.classList.toggle('enabled', prefs.dom);
+        }
+        if (prefs.props !== undefined) {
+          propsOption.classList.toggle('enabled', prefs.props);
+        }
+      } catch (e) {
+        // If parsing fails, use default values (all enabled as per HTML)
+      }
+    }
+  }
+
+  function saveCheckboxPreferences() {
+    const preferences = {
+      screenshot: screenshotOption.classList.contains('enabled'),
+      styles: stylesOption.classList.contains('enabled'),
+      dom: domOption.classList.contains('enabled'),
+      props: propsOption.classList.contains('enabled')
+    };
+    localStorage.setItem('claude-devtools-checkboxes', JSON.stringify(preferences));
+  }
+
+  function applyDevToolsTheme() {
+    // DevTools theme detection
+    const isDark = chrome.devtools?.panels?.themeName === 'dark' ||
+                   window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ||
+                   false;
+
+    if (isDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+
+    // Listen for theme changes
+    if (window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', (e) => {
+        if (e.matches) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+      });
+    }
+  }
+
+  function updateSendButtonText() {
+    // Detect platform for keyboard shortcut display
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0 ||
+                  navigator.userAgent.indexOf('Mac OS X') !== -1;
+    const shortcut = isMac ? 'Cmd+Enter' : 'Ctrl+Enter';
+    sendToClaudeBtn.textContent = `Send (${shortcut})`;
   }
 
   chrome.runtime.onMessage.addListener(

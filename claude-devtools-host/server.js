@@ -4,7 +4,24 @@ const path = require("path");
 const pty = require("node-pty");
 const fs = require("fs").promises;
 const fastify = require("fastify")({ logger: false });
-const { writeClipboardImages } = require("clipboard-image");
+
+// Handle --version argument
+if (process.argv.includes('--version') || process.argv.includes('-v')) {
+  const packageJson = require("./package.json");
+  console.log(packageJson.version);
+  process.exit(0);
+}
+
+// Only import clipboard-image on macOS
+let writeClipboardImages = null;
+if (os.platform() === "darwin") {
+  try {
+    const clipboardImage = require("clipboard-image");
+    writeClipboardImages = clipboardImage.writeClipboardImages;
+  } catch (error) {
+    console.warn("clipboard-image not available, image paste disabled");
+  }
+}
 
 fastify.register(require("@fastify/cors"), { origin: true });
 
@@ -69,7 +86,7 @@ async function processQueue() {
 
     if (claude) {
       try {
-        if (request.image) {
+        if (request.image && writeClipboardImages) {
           const base64Data = request.image.replace(
             /^data:image\/[a-z]+;base64,/,
             "",
@@ -93,6 +110,8 @@ async function processQueue() {
           });
 
           claude.write(" ");
+        } else if (request.image && !writeClipboardImages) {
+          console.warn("Image provided but clipboard functionality not available (macOS only)");
         }
 
         await typeSlowly(claude, request.prompt);
@@ -136,9 +155,11 @@ fastify.post("/prompt", async (request, reply) => {
 });
 
 fastify.get("/health", async (request, reply) => {
+  const packageJson = require("./package.json");
   return {
     status: "ok",
-    claude: claudeProcess ? "running" : "stopped",
+    version: packageJson.version,
+    claude: claudePty ? "running" : "stopped",
     queueLength: requestQueue.length,
   };
 });
