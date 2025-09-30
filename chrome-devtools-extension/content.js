@@ -29,36 +29,12 @@ class ClaudeDevTools {
     (document.head || document.documentElement).appendChild(script);
   }
 
-  injectPickerStyles() {
-    this.pickerStyle = document.createElement("style");
-    this.pickerStyle.id = "claude-devtools-picker-style";
-    this.pickerStyle.textContent = `
-      *[disabled] {
-        pointer-events: all !important;
-      }
-      button[disabled],
-      input[disabled],
-      select[disabled],
-      textarea[disabled] {
-        pointer-events: all !important;
-      }
-    `;
-    document.head.appendChild(this.pickerStyle);
-  }
-
-  removePickerStyles() {
-    if (this.pickerStyle) {
-      this.pickerStyle.remove();
-      this.pickerStyle = null;
-    }
-  }
 
   startPicking() {
     if (this.isPicking) return;
 
     this.isPicking = true;
     this.createOverlay();
-    this.injectPickerStyles();
     this.bindEvents();
   }
 
@@ -67,7 +43,6 @@ class ClaudeDevTools {
 
     this.isPicking = false;
     this.removeOverlay();
-    this.removePickerStyles();
     this.unbindEvents();
     this.clearHighlight();
   }
