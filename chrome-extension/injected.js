@@ -12,6 +12,9 @@
       if (window.__PREACT_DEVTOOLS__?.renderers?.size > 0) {
         return "Preact";
       }
+      if (window.__svelte) {
+        return "Svelte";
+      }
       if (window.ng) {
         return "Angular";
       }
@@ -30,6 +33,9 @@
       } else if (framework === "Preact") {
         const preactInfo = this.getPreactInfo(element);
         if (preactInfo) return { ...preactInfo, framework: "Preact" };
+      } else if (framework === "Svelte") {
+        const svelteInfo = this.getSvelteInfo(element);
+        if (svelteInfo) return { ...svelteInfo, framework: "Svelte" };
       } else if (framework === "Angular") {
         const angularInfo = this.getAngularInfo(element);
         if (angularInfo) return { ...angularInfo, framework: "Angular" };
@@ -198,6 +204,47 @@
         }
 
         component = component.__o;
+      }
+
+      return {
+        name: finalName,
+        props: finalProps,
+        files: files.length > 0 ? files : null,
+        functionsToLocate: [],
+        needsSourceDetection: false,
+        elementId: element.getAttribute("data-claude-devtools-id"),
+      };
+    }
+
+    getSvelteInfo(element) {
+      if (!element.__svelte_meta) return null;
+
+      const files = [];
+      let finalName = null;
+      let finalProps = null;
+
+      if (element.__svelte_meta.loc) {
+        const firstPath = `${element.__svelte_meta.loc.file}:${element.__svelte_meta.loc.line}:${element.__svelte_meta.loc.column}`;
+        files.push(firstPath);
+      }
+
+      let node = element.__svelte_meta;
+      while (node && !node.type) {
+        node = node.parent;
+      }
+
+      if (node) {
+        finalName = node.componentTag;
+
+        let component = node;
+        while (component) {
+          if (component.file && component.line && component.column) {
+            const path = `${component.file}:${component.line}:${component.column}`;
+            files.push(path);
+          }
+
+          component = component.parent;
+        }
       }
 
       return {
