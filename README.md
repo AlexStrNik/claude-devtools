@@ -59,6 +59,7 @@ Your element's context is sent directly to Claude, including:
 ## Features
 
 - **React support**: Full component detection with props and source locations (React <19 and React 19+)
+- **Preact support**: Component hierarchy detection via Preact DevTools (requires [Preact DevTools extension](https://preactjs.github.io/preact-devtools/))
 - **Angular support**: Complete component hierarchy (tested on Angular 17)
 - **Vue support**: Component detection for Vue 2 and Vue 3
 - **Screenshots**: Automatic element capture for visual context (macOS only)

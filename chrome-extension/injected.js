@@ -9,6 +9,9 @@
       if (fiberKey) {
         return "React";
       }
+      if (window.__PREACT_DEVTOOLS__?.renderers?.size > 0) {
+        return "Preact";
+      }
       if (window.ng) {
         return "Angular";
       }
@@ -24,6 +27,9 @@
       if (framework === "React") {
         const reactInfo = this.getReactInfo(element);
         if (reactInfo) return { ...reactInfo, framework: "React" };
+      } else if (framework === "Preact") {
+        const preactInfo = this.getPreactInfo(element);
+        if (preactInfo) return { ...preactInfo, framework: "Preact" };
       } else if (framework === "Angular") {
         const angularInfo = this.getAngularInfo(element);
         if (angularInfo) return { ...angularInfo, framework: "Angular" };
@@ -152,6 +158,46 @@
         }
 
         component = component.parent;
+      }
+
+      return {
+        name: finalName,
+        props: finalProps,
+        files: files.length > 0 ? files : null,
+        functionsToLocate: [],
+        needsSourceDetection: false,
+        elementId: element.getAttribute("data-claude-devtools-id"),
+      };
+    }
+
+    getPreactInfo(element) {
+      if (!window.__PREACT_DEVTOOLS__?.renderers) return null;
+
+      const renderer = window.__PREACT_DEVTOOLS__.renderers.get(1);
+      if (!renderer) return null;
+
+      const vnodeId = renderer.findVNodeIdForDom(element);
+      if (!vnodeId) return null;
+
+      let component = renderer.getVNodeById(vnodeId);
+      if (!component) return null;
+
+      const files = [];
+      let finalName = null;
+      let finalProps = null;
+
+      while (component) {
+        if (!finalName) {
+          finalName = component.type?.name;
+          finalProps = component.props;
+        }
+
+        if (component.__source) {
+          const path = `${component.__source.fileName}:${component.__source.lineNumber}:${component.__source.columnNumber}`;
+          files.push(path);
+        }
+
+        component = component.__o;
       }
 
       return {
