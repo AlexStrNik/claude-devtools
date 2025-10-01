@@ -1,6 +1,6 @@
 {
   "name": "@alexstrnik/claude-devtools",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Host server for Claude DevTools Chrome extension",
   "main": "server.js",
   "bin": {
@@ -16,7 +16,8 @@
     "devtools",
     "chrome-extension",
     "react",
-    "angular"
+    "angular",
+    "vue"
   ],
   "author": {
     "name": "alexstrnik",
