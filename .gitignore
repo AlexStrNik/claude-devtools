@@ -57,4 +57,7 @@ coverage/
 
 # Temp folders
 tmp/
-temp/examples/
+temp/
+
+# Examples
+examples/
