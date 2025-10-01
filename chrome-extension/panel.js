@@ -140,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
         autoResizeTextarea(promptText);
       } else {
         showStatus(
-          "Failed to send to Claude - is claude-devtools-host running?",
+          "Failed to send to Claude - is claude-devtools running?",
           "error"
         );
       }
@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const displayFiles = selectedElement.component.files
           .map(f => makePathRelativeToProject(f))
           .join("\n");
-        addDetailsRow("Files:", displayFiles);
+        addDetailsRow("Component Path:", displayFiles);
       }
     }
 
@@ -301,7 +301,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const displayFiles = selectedElement.component.files
           .map(f => makePathRelativeToProject(f))
           .join("\n  ");
-        prompt += `\n- Files:\n  ${displayFiles}`;
+        prompt += `\n- Component Hierarchy:\n  ${displayFiles}`;
       }
       if (
         propsOption.classList.contains("enabled") &&

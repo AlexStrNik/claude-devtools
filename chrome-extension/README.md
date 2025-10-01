@@ -14,16 +14,15 @@ A Chrome extension that allows you to pick elements on web pages and send them t
 
 1. Install the host server:
    ```bash
-   cd claude-devtools-host
-   pnpm install
-   pnpm start
+   npm install -g @alexstrnik/claude-devtools
+   claude-devtools
    ```
 
 2. Load the extension in Chrome:
    - Open Chrome and go to `chrome://extensions/`
    - Enable "Developer mode"
    - Click "Load unpacked"
-   - Select the `chrome-devtools-extension` folder
+   - Select the `chrome-extension` folder
 
 ## Usage
 

@@ -4,7 +4,7 @@
 
 **Fix your frontend code right from DevTools.**
 
-Pick a component, write your prompt, and send it directly to a Claude session—without leaving the page.
+Pick a component, write your prompt, and send it directly to Claude Code—without leaving the page.
 
 ---
 
@@ -12,73 +12,57 @@ Pick a component, write your prompt, and send it directly to a Claude session—
 
 ### 1. Install the host server
 
-The host server runs in your project folder like the regular Claude CLI and listens on port `47923` for commands from the extension.
-
 ```bash
 npm install -g @alexstrnik/claude-devtools
-# or
-pnpm add -g @alexstrnik/claude-devtools
 ```
 
 ### 2. Install the Chrome extension
 
 **Option A: Download latest release** (Easiest)
 1. Go to [Releases](https://github.com/AlexStrNik/claude-devtools/releases/latest)
-2. Download `claude-devtools-extension-vX.X.X.zip`
+2. Download `claude-devtools-chrome-vX.X.X.zip`
 3. Open Chrome → Extensions → Enable **Developer mode**
 4. **Drag and drop** the zip file directly onto the Extensions page
 
 **Option B: Clone from source**
 1. Clone this repo: `git clone https://github.com/AlexStrNik/claude-devtools`
 2. Open Chrome → Extensions → Enable **Developer mode**
-3. Click **Load unpacked** → select `chrome-devtools-extension` folder
+3. Click **Load unpacked** → select `chrome-extension` folder
 
 ### 3. Start the host server
+
+In your project directory:
 
 ```bash
 claude-devtools
 ```
 
----
-
-## How it works
-
-```
-Web Page → Chrome Extension → Host Server → Claude Code PTY
-```
-
-- **Chrome Extension**: Detects components and captures element data.
-- **Host Server**: Bridges your browser and Claude Code, manages the PTY, handles images, queues requests, and maintains persistent sessions.
-- **Claude Code**: Receives full context for debugging or live modifications.
+The `claude-devtools` command works just like the regular `claude` CLI. It starts an interactive Claude Code session and accepts all the same arguments (except `--version`), which are passed directly to the underlying Claude process.
 
 ---
 
-## Using Claude DevTools
+## Usage
 
-1. Start the host server (`claude-devtools`)
-2. Open DevTools → **Claude DevTools** tab
-3. Click **Pick Element** → select a component
-4. Write your prompt or question
-5. Hit **Send to Claude Code**
+1. Open DevTools → **Claude DevTools** tab
+2. Click **Pick Element** → select a component on the page
+3. Write your prompt or question
+4. Hit **Send to Claude** (or Cmd/Ctrl+Enter)
 
-Your element’s context is sent directly to Claude, including:
+Your element's context is sent directly to Claude, including:
 
-- Component name (React or Angular)
-- Props
-- DOM slice
-- Computed styles
-- Screenshots (macOS only)
-- File path
+- Component name, props, and hierarchy paths
+- DOM structure and computed styles
+- Screenshot (macOS only)
 
 ---
 
 ## Features
 
-- **React support**: Extracts component names, props, and source locations (React 18 & 19)
-- **Angular support**: Full component detection with props and source mapping (Angular 17)
-- **Screenshots**: Automatic element cropping for visual context (macOS only)
-- **Source mapping**: Maps compiled JS back to original TypeScript files
-- **Customizable context**: Include exactly what you need
+- **React support**: Full component detection with props and source locations (React <19 and React 19+)
+- **Angular support**: Complete component hierarchy (tested on Angular 17)
+- **Vue support**: Component detection for Vue 2 and Vue 3
+- **Screenshots**: Automatic element capture for visual context (macOS only)
+- **Customizable context**: Toggle what data to include before sending
 
 ---
 
@@ -89,28 +73,24 @@ Your element’s context is sent directly to Claude, including:
 git clone https://github.com/AlexStrNik/claude-devtools
 
 # Install host dependencies
-cd claude-devtools-host
+cd claude-devtools
 pnpm install
 
-# Start development server
-pnpm dev
-
-# Load extension in Chrome DevTools
+# Start server
+pnpm start
 ```
 
----
-
-## Examples
-
-- `react-example-18` – React 18 test app
-- `react-example-19` – React 19 test app
-- `angular-17` – Angular 17 test app
+Load the extension from the `chrome-extension` folder in Chrome DevTools.
 
 ---
 
-## Todo / Roadmap
+## Roadmap
 
-- Support more frameworks (currently React & Angular)
-- Add image support on Linux/Windows
-- Port control directly in extension UI
-- Improve React 19+ source path detection
+- Screenshot support for Linux/Windows
+- Additional framework support
+
+---
+
+## License
+
+MIT

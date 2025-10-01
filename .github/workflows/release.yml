@@ -28,22 +28,22 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd claude-devtools-host
+          cd claude-devtools
           pnpm install --no-frozen-lockfile
 
       - name: Copy README to package
         run: |
-          cp README.md claude-devtools-host/
+          cp README.md claude-devtools/
 
       - name: Package Chrome Extension
         run: |
-          cd chrome-devtools-extension
-          zip -r ../claude-devtools-extension-${{ github.ref_name }}.zip . \
+          cd chrome-extension
+          zip -r ../claude-devtools-chrome-${{ github.ref_name }}.zip . \
             -x "node_modules/*" "*.log" ".DS_Store"
 
       - name: Publish to npm
         run: |
-          cd claude-devtools-host
+          cd claude-devtools
           npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -68,6 +68,6 @@ jobs:
             ## Changes
             See commits since last release.
           files: |
-            claude-devtools-extension-${{ github.ref_name }}.zip
+            claude-devtools-chrome-${{ github.ref_name }}.zip
           draft: false
           prerelease: false
